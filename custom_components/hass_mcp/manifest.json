@@ -1,0 +1,23 @@
+{
+  "domain": "hass_mcp",
+  "name": "Fully Featured Home Assistant MCP Server",
+  "after_dependencies": [
+    "blueprint",
+    "config",
+    "diagnostics",
+    "energy",
+    "logbook",
+    "recorder",
+    "system_log",
+    "trace"
+  ],
+  "codeowners": ["@czechbol"],
+  "config_flow": true,
+  "dependencies": ["http", "auth", "api"],
+  "documentation": "https://github.com/czechbol/hass-mcp",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/czechbol/hass-mcp/issues",
+  "requirements": [],
+  "version": "0.5.2"
+}

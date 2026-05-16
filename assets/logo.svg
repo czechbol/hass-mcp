@@ -1,0 +1,46 @@
+<svg width="512" height="512" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+
+<!-- House silhouette background -->
+<path d="M240 224.762C240 233.012 233.25 239.762 225 239.762H15C6.75 239.762 0 233.012 0 224.762V134.762C0 126.512 4.77 114.993 10.61 109.153L109.39 10.3725C115.22 4.5425 124.77 4.5425 130.6 10.3725L229.39 109.162C235.22 114.992 240 126.522 240 134.772V224.772V224.762Z" fill="#F2F4F9"/>
+
+<!-- Blue overlay -->
+<path d="M229.39 109.153L130.61 10.3725C124.78 4.5425 115.23 4.5425 109.4 10.3725L10.61 109.153C4.78 114.983 0 126.512 0 134.762V224.762C0 233.012 6.75 239.762 15 239.762H225C233.25 239.762 240 233.012 240 224.762V134.762C240 126.512 235.23 115.002 229.39 109.162V109.153Z" fill="#18BCF2"/>
+
+<!-- Circuit tree -->
+<g stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" fill="none">
+  <!-- Main stem -->
+  <line x1="120" y1="240" x2="120" y2="75"/>
+
+  <!-- Bottom left: fork at y210, long gentle curve -->
+  <path d="M120 210 C120 200 115 190 100 180 C85 170 65 168 60 170"/>
+  <!-- Bottom right: fork at y200 -->
+  <path d="M120 200 C120 190 130 178 150 165 C165 155 178 153 180 155"/>
+
+  <!-- Upper left: fork at y165 -->
+  <path d="M120 165 C120 155 112 145 98 135 C85 126 74 122 72 120"/>
+  <!-- Upper right: fork at y155 -->
+  <path d="M120 155 C120 145 130 133 145 122 C157 113 163 110 165 108"/>
+</g>
+
+<!-- 5 dots -->
+<!-- Top center -->
+<circle cx="120" cy="72" r="14" fill="#FFFFFF"/>
+<circle cx="120" cy="72" r="6.5" fill="#18BCF2"/>
+
+<!-- Bottom left -->
+<circle cx="60" cy="170" r="14" fill="#FFFFFF"/>
+<circle cx="60" cy="170" r="6.5" fill="#18BCF2"/>
+
+<!-- Bottom right -->
+<circle cx="180" cy="155" r="14" fill="#FFFFFF"/>
+<circle cx="180" cy="155" r="6.5" fill="#18BCF2"/>
+
+<!-- Upper left -->
+<circle cx="72" cy="120" r="14" fill="#FFFFFF"/>
+<circle cx="72" cy="120" r="6.5" fill="#18BCF2"/>
+
+<!-- Upper right -->
+<circle cx="165" cy="108" r="14" fill="#FFFFFF"/>
+<circle cx="165" cy="108" r="6.5" fill="#18BCF2"/>
+
+</svg>

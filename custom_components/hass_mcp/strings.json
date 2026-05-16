@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Fully Featured Home Assistant MCP Server",
+        "description": "Mounts an MCP endpoint at /api/hass_mcp using your Home Assistant long-lived access tokens for authentication.",
+        "data": {
+          "allow_write": "Allow write tools (call_service, set_state, registry updates, config-entry mutations)",
+          "allow_destructive": "Allow destructive tools (delete state, remove entries, registry delete)",
+          "allow_fire_event": "Allow firing arbitrary events on the event bus",
+          "rate_limit_per_minute": "Max MCP requests per minute per token (0 = unlimited)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one Fully Featured Home Assistant MCP Server instance is supported."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fully Featured Home Assistant MCP Server options",
+        "data": {
+          "allow_write": "Allow write tools",
+          "allow_destructive": "Allow destructive tools",
+          "allow_fire_event": "Allow firing arbitrary events",
+          "rate_limit_per_minute": "Max requests per minute per token (0 = unlimited)"
+        }
+      }
+    }
+  }
+}

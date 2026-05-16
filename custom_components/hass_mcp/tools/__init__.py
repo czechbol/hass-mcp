@@ -1,0 +1,35 @@
+"""Tool registration. Importing this package registers every tool."""
+
+from __future__ import annotations
+
+from . import (  # noqa: F401
+    auth_tokens,
+    backup,
+    blueprint,
+    camera,
+    config,
+    config_entries,
+    config_flow,
+    conversation,
+    describe,
+    diagnostics,
+    energy,
+    events,
+    hacs,
+    helper_entities,
+    history,
+    logbook,
+    lovelace,
+    recorder,
+    registries,
+    search,
+    services,
+    states,
+    statistics,
+    system_log,
+    template,
+    trace,
+    validate,
+    webhook,
+    yaml_config,
+)

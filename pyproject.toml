@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = [".git", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF", "BLE", "SLF"]
+ignore = [
+    "E501", # line length — long descriptions/strings are fine
+    "B008", # function calls in defaults — voluptuous schemas use this
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B018"]
