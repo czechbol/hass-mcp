@@ -5,6 +5,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [2.0.0] - 2026-06-19
+
 ### Changed
 
 - **Breaking — tool names.** Consolidated confusable tools into generic
@@ -25,6 +39,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
   options to see the updated set.
 - Slimmed the shared pagination fields (`limit`/`offset`) in tool schemas to
   trim catalog weight.
+- Integration display name is now **Native MCP for Home Assistant**.
 
 ### Removed
 
@@ -90,7 +105,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/czechbol/hass-mcp/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/czechbol/hass-mcp/releases/tag/v1.1.1
 [1.1.0]: https://github.com/czechbol/hass-mcp/releases/tag/v1.1.0
 [1.0.0]: https://github.com/czechbol/hass-mcp/releases/tag/v1.0.0
