@@ -107,20 +107,12 @@ def schema(
     return out
 
 
-LIMIT_FIELD: dict[str, Any] = {
-    "type": "integer",
-    "minimum": 1,
-    "maximum": 1000,
-    "default": 100,
-    "description": "Maximum items to return.",
-}
+# Pagination fields are inlined into ~every tool's schema; kept minimal so they
+# don't bloat the catalog. Bounds are enforced/tolerated by paginate(), not the
+# schema. Names are self-describing, so no description.
+LIMIT_FIELD: dict[str, Any] = {"type": "integer", "default": 100}
 
-OFFSET_FIELD: dict[str, Any] = {
-    "type": "integer",
-    "minimum": 0,
-    "default": 0,
-    "description": "Zero-based offset for pagination.",
-}
+OFFSET_FIELD: dict[str, Any] = {"type": "integer", "default": 0}
 
 
 def paginate(items: list[Any], limit: int, offset: int) -> dict[str, Any]:

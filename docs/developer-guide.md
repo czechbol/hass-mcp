@@ -123,6 +123,14 @@ message. For *unexpected* exceptions, the dispatch wraps them as
   (`ha_registry`, `ha_yaml_config`, `ha_helper`). Preferred when you have
   >2 closely related ops; keeps the tool catalog manageable.
 
+Discriminator naming is canonical (see [`CONTEXT.md`](../CONTEXT.md)): the
+action discriminator is **always `op`** (a verb — `list`/`get`/`create`/…);
+add **`kind`** only when one tool spans several resource types. Never
+introduce `mode`/`action`/`type` — that silently reintroduces the catalog
+ambiguity the meta-tool pattern exists to avoid. Tools whose permission class
+is disabled are omitted from `tools/list`, so don't rely on a gated tool being
+visible for discovery — name it in a sibling tool's `ToolError` instead.
+
 ### 2. Create the module
 
 ```python

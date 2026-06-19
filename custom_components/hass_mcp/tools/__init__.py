@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from . import (  # noqa: F401
+    assist,
     auth_tokens,
     backup,
     blueprint,
     camera,
-    config,
     config_entries,
     config_flow,
-    conversation,
     describe,
     diagnostics,
     energy,
@@ -18,7 +17,6 @@ from . import (  # noqa: F401
     hacs,
     helper_entities,
     history,
-    logbook,
     lovelace,
     recorder,
     registries,
@@ -26,7 +24,7 @@ from . import (  # noqa: F401
     services,
     states,
     statistics,
-    system_log,
+    system,
     template,
     trace,
     validate,

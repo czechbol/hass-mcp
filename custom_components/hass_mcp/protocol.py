@@ -116,7 +116,7 @@ async def _route(hass: HomeAssistant, method: str, params: dict[str, Any]) -> An
     if method == "ping":
         return {}
     if method == "tools/list":
-        return _tools_list(params)
+        return _tools_list(hass, params)
     if method == "tools/call":
         return await _tools_call(hass, params)
     # Resources/prompts/sampling — advertise empty so spec-compliant clients still work.
@@ -142,15 +142,21 @@ def _initialize() -> dict[str, Any]:
         "instructions": (
             "Home Assistant generic-tools MCP. Read state with ha_list_states / "
             "ha_get_state. Drive devices with ha_call_service. Render templates "
-            "with ha_render_template. Inspect history with ha_history / ha_logbook. "
-            "Manage integrations with ha_config_entries and ha_config_flow."
+            "with ha_render_template. Inspect history with ha_history. "
+            "Manage integrations with ha_config_entries and ha_config_flow. "
+            "Destructive and event-firing tools are hidden from the list unless "
+            "enabled via the integration's allow_destructive / allow_fire_event "
+            "options."
         ),
     }
 
 
-def _tools_list(_params: dict[str, Any]) -> dict[str, Any]:
-    # Pagination cursor not implemented — emit all in one page.
-    return {"tools": [t.to_listing() for t in TOOLS.values()]}
+def _tools_list(hass: HomeAssistant, _params: dict[str, Any]) -> dict[str, Any]:
+    # Pagination cursor not implemented — emit all in one page. Tools whose
+    # permission class is disabled are omitted so they don't pollute the
+    # client's context; their capabilities are noted in the initialize
+    # instructions instead.
+    return {"tools": [t.to_listing() for t in TOOLS.values() if _gate(hass, t)]}
 
 
 async def _tools_call(hass: HomeAssistant, params: dict[str, Any]) -> dict[str, Any]:

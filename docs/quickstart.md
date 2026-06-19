@@ -15,18 +15,18 @@ You will need:
 1. Open **HACS** in Home Assistant.
 2. Top-right menu → **Custom repositories**.
 3. Add `https://github.com/czechbol/hass-mcp` as category **Integration**.
-4. Search HACS for **MCP Server (full)** → **Download** → **Restart Home Assistant**.
+4. Search HACS for **Native MCP for Home Assistant** → **Download** → **Restart Home Assistant**.
 
 ## 2. Add the integration and choose permissions
 
 After the restart:
 
-1. **Settings → Devices & Services → Add Integration → MCP Server (full)**.
+1. **Settings → Devices & Services → Add Integration → Native MCP for Home Assistant**.
 2. Pick the three permission toggles:
 
    | Option | Default | Enables |
    |---|---|---|
-   | `allow_write` | ✅ on | `ha_call_service`, `ha_set_state`, `ha_yaml_config`, registry updates, helper CRUD, config entry mutations, conversation, intent |
+   | `allow_write` | ✅ on | `ha_call_service`, `ha_set_state`, `ha_yaml_config`, registry updates, helper CRUD, config entry mutations, `ha_assist` |
    | `allow_destructive` | ❌ off | `ha_delete_state`, registry deletes, `ha_recorder purge`, `ha_auth delete_refresh_token` |
    | `allow_fire_event` | ❌ off | `ha_fire_event` |
 
@@ -99,7 +99,9 @@ curl -sS -X POST https://YOUR_HA:8123/api/hass_mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools | length'
 ```
 
-Expected output: `39` (or however many tools the version ships).
+Expected output: `28` on a default install (tools whose permission class is
+disabled aren't listed; enabling `allow_destructive` / `allow_fire_event` adds
+more). The exact count varies by version and enabled options.
 
 If you get `401 Unauthorized` the token is wrong. `404 Not Found` means the
 integration isn't loaded — check that the config-entry exists and HA was

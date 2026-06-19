@@ -102,7 +102,7 @@ async def ha_lovelace(
         if not opts.get(CONF_ALLOW_DESTRUCTIVE, False):
             raise ToolError(
                 f"op '{op}' requires allow_destructive=true. Toggle it in "
-                "HA → Settings → Devices & Services → MCP Server (full) → "
+                "HA → Settings → Devices & Services → Native MCP for Home Assistant → "
                 "Configure (not a per-call argument)."
             )
 

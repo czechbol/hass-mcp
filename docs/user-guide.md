@@ -87,11 +87,8 @@ This is the same data the HA UI's service-call dialog uses — translations
 merged in.
 
 Filter with `domain` or `service_pattern` glob (`light.*`, `*.turn_on`).
-
-### `ha_describe_service`
-
-One service by id (`light.turn_on`) — same shape as a single
-`ha_list_services` row.
+For one service by id, filter to it: `ha_list_services` with
+`service_pattern="light.turn_on"`.
 
 ### `ha_call_service`
 
@@ -231,8 +228,8 @@ Create, list, update, or delete helper entities. For setting their *value*
 
 | Tool | Use |
 |---|---|
-| `ha_history` | Significant state changes between two ISO timestamps for given entity_ids |
-| `ha_logbook` | Logbook entries (state changes formatted for humans) between two timestamps |
+| `ha_history` `kind=state_changes` | Significant state changes between two ISO timestamps for given entity_ids |
+| `ha_history` `kind=logbook` | Logbook entries (state changes formatted for humans) between two timestamps |
 | `ha_statistics` | Long-term stats: `list_ids`, `period`, `metadata`, `clear` |
 | `ha_recorder` | Recorder `info` + destructive `purge` / `purge_entities` |
 
@@ -241,21 +238,31 @@ indispensable on big HA instances with hundreds of long-term stats.
 
 ## Conversation and intents
 
-- **`ha_conversation`** — full Assist pipeline. Narrow intent grammar
+`ha_assist` invokes Assist:
+
+- **`op=converse`** — full Assist pipeline. Narrow intent grammar
   ("turn on the kitchen light"). Don't use it for open Q&A — use templates
   instead.
-- **`ha_intent`** — lower-level intent handler (`HassTurnOn`, `HassGetState`,
-  …). Bare slot values are auto-wrapped into `{value: x}`.
+- **`op=handle_intent`** — lower-level intent handler (`HassTurnOn`,
+  `HassGetState`, …). Bare slot values are auto-wrapped into `{value: x}`.
 
 ## System and audit
 
+`ha_system` dispatches on `op`:
+
+| `op` | What it does |
+|---|---|
+| `get_config` | Core config (version, location, components, URLs) |
+| `check_config` | Validate `configuration.yaml` |
+| `get_health` | Aggregate `system_health/info` (HACS, recorder, network, cloud) |
+| `read_error_log` | Tail `home-assistant.log` |
+| `read_system_log` | HA's in-memory log entries (filterable by level / logger prefix) |
+| `clear_system_log` | Clear the in-memory system log |
+
+Other audit tools:
+
 | Tool | What it does |
 |---|---|
-| `ha_get_config` | Core config (version, location, components, URLs) |
-| `ha_check_config` | Validate `configuration.yaml` |
-| `ha_get_system_health` | Aggregate `system_health/info` (HACS, recorder, network, cloud) |
-| `ha_error_log` | Tail `home-assistant.log` |
-| `ha_system_log` | HA's in-memory log entries (filterable by level / logger prefix) |
 | `ha_diagnostics` | Per-integration / per-device diagnostics dump |
 | `ha_list_events` | Event types currently subscribed, with listener counts |
 | `ha_fire_event` | Fire arbitrary event (gated by `allow_fire_event`) |
@@ -392,7 +399,7 @@ Capture a single frame as base64. Multimodal models can read it directly.
 2. ha_render_template ⇒ list non-device_tracker bad entities
 3. (cluster by prefix in your head) ⇒ pinpoint which integrations are degraded
 4. ha_diagnostics op=config_entry entry_id=<offending one> ⇒ confirm root cause
-5. ha_error_log ⇒ correlate timestamps
+5. ha_system op=read_error_log ⇒ correlate timestamps
 ```
 
 ## Create an automation, verify, then delete it
@@ -431,7 +438,7 @@ Capture a single frame as base64. Multimodal models can read it directly.
 ```
 1. ha_config_entries op=list domain=mikrotik_router
 2. ha_diagnostics op=config_entry entry_id=<…>
-3. ha_system_log op=list logger_prefix=custom_components.mikrotik_router
+3. ha_system op=read_system_log logger_prefix=custom_components.mikrotik_router
 ```
 
 ## Recover a flapping integration
@@ -439,7 +446,7 @@ Capture a single frame as base64. Multimodal models can read it directly.
 ```
 1. ha_config_entries op=get entry_id=<…>            # current state
 2. ha_config_entries op=reload entry_id=<…>
-3. ha_system_log op=list level=ERROR                # see if it recovered
+3. ha_system op=read_system_log level=ERROR         # see if it recovered
 ```
 
 ---

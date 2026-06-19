@@ -1,4 +1,4 @@
-# Fully Featured Home Assistant MCP Server
+# Native MCP for Home Assistant
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/czechbol/hass-mcp/refs/heads/main/assets/logo.svg" width="200" alt="Home Assistant MCP logo">
@@ -27,8 +27,8 @@ subset that the core `mcp_server` integration provides.
 ## Install
 
 1. Add this repository as a HACS custom repository (Integration).
-2. Install **MCP Server (full)**, restart HA.
-3. **Settings → Devices & Services → Add Integration → MCP Server (full)**.
+2. Install **Native MCP for Home Assistant**, restart HA.
+3. **Settings → Devices & Services → Add Integration → Native MCP for Home Assistant**.
    Toggle which tool classes are allowed: writes, destructive ops, firing
    arbitrary events.
 4. Create a **long-lived access token** in your HA profile.
@@ -98,8 +98,7 @@ All tools live under the `ha_` prefix. List with `tools/list`; call with
 | `ha_set_state`         | Write to the state machine without invoking a device                                                                                 |
 | `ha_delete_state`      | Remove entity from the state machine                                                                                                 |
 | `ha_call_service`      | Call any HA service. `return_response` auto-detected from `supports_response`                                                        |
-| `ha_list_services`     | Service catalog with field schemas, selectors, descriptions, targets — same data as HA UI                                            |
-| `ha_describe_service`  | By-id service detail (fields, selectors, target, supports_response)                                                                  |
+| `ha_list_services`     | Service catalog with field schemas, selectors, descriptions, targets — same data as HA UI. Filter to one service for by-id detail    |
 | `ha_search`            | Fuzzy search across entities / devices / areas / labels                                                                              |
 | `ha_render_template`   | Render an HA Jinja template                                                                                                          |
 | `ha_validate_config`   | Validate trigger / condition / action blocks                                                                                         |
@@ -111,24 +110,19 @@ All tools live under the `ha_` prefix. List with `tools/list`; call with
 | `ha_diagnostics`       | Per-integration / per-device diagnostics dump                                                                                        |
 | `ha_helper`            | CRUD for input_boolean / input_number / input_select / input_text / input_datetime / counter / timer / schedule                      |
 | `ha_backup`            | Backup integration: info/details/generate/delete/restore + agents/config                                                             |
-| `ha_system_log`        | List/clear HA's in-memory system log                                                                                                 |
 | `ha_lovelace`          | Dashboards / configs / resources — read + CRUD (save/delete configs, create/update/delete dashboards & resources)                    |
 | `ha_auth`              | Refresh + long-lived token mgmt (list/create/revoke)                                                                                 |
 | `ha_webhook`           | List registered webhooks                                                                                                             |
 | `ha_list_events`       | Event types + listener counts                                                                                                        |
 | `ha_fire_event`        | Fire an event on the bus (gated)                                                                                                     |
-| `ha_get_config`        | Core configuration                                                                                                                   |
-| `ha_check_config`      | Validate `configuration.yaml`                                                                                                        |
-| `ha_get_system_health` | Aggregate `system_health` info                                                                                                       |
-| `ha_error_log`         | Tail `home-assistant.log`                                                                                                            |
+| `ha_system`           | System introspection: op=get_config / check_config / get_health / read_error_log / read_system_log / clear_system_log |
 | `ha_registry`          | Entity / device / area / label / floor / category / issue CRUD                                                                       |
 | `ha_config_entries`    | Manage installed integrations: list / reload / unload / setup / remove / update_options                                              |
 | `ha_config_flow`       | **Add new integrations** via the same flow the UI uses                                                                               |
-| `ha_history`           | Significant state history (recorder)                                                                                                 |
-| `ha_logbook`           | Logbook events between two timestamps                                                                                                |
+| `ha_hacs`             | HACS: list/get/install/update repositories |
+| `ha_history`          | Recorder timeline: kind=state_changes (significant state history) or kind=logbook (logbook events) between two timestamps |
 | `ha_statistics`        | Long-term statistics: list_ids / period / metadata / clear                                                                           |
-| `ha_conversation`      | Run the Assist conversation pipeline                                                                                                 |
-| `ha_intent`            | Handle a named intent (HassTurnOn, …)                                                                                                |
+| `ha_assist`           | Invoke Assist: op=converse (conversation pipeline) or op=handle_intent (named intent like HassTurnOn) |
 | `ha_camera_snapshot`   | Capture a camera frame as base64                                                                                                     |
 
 ### Adding a new integration via MCP
@@ -155,7 +149,7 @@ Three integration options gate tool classes:
 
 | Option              | Default | Tools it enables                                                                                                                |
 | ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `allow_write`       | ✅ on   | `ha_call_service`, `ha_set_state`, `ha_registry` updates, `ha_config_entries` mutations, `ha_config_flow`, conversation, intent |
+| `allow_write`       | ✅ on   | `ha_call_service`, `ha_set_state`, `ha_registry` updates, `ha_config_entries` mutations, `ha_config_flow`, `ha_assist` |
 | `allow_destructive` | ❌ off  | `ha_delete_state`, `ha_registry` deletes                                                                                        |
 | `allow_fire_event`  | ❌ off  | `ha_fire_event`                                                                                                                 |
 

@@ -128,48 +128,6 @@ def _merge_translation(
     }
 
 
-@tool(
-    name="ha_describe_service",
-    description=(
-        "Describe a single service by id (e.g. 'light.turn_on'). Returns "
-        "description, field schemas, selectors, examples, target shape, and "
-        "supports_response."
-    ),
-    input_schema=schema(
-        properties={
-            "id": {"type": "string", "description": "Service id 'domain.service'."},
-        },
-        required=["id"],
-    ),
-    read_only=True,
-)
-async def ha_describe_service(hass: HomeAssistant, id: str) -> dict[str, Any]:
-    if "." not in id:
-        raise ToolError("service id must be 'domain.service' format")
-    dom, sname = id.split(".", 1)
-    services = hass.services.async_services()
-    svc = services.get(dom, {}).get(sname)
-    if svc is None:
-        raise ToolError(f"service '{id}' not found; use ha_list_services")
-
-    descriptions = await async_get_all_descriptions(hass)
-    desc = descriptions.get(dom, {}).get(sname, {})
-    tx = await _service_translations(hass)
-    merged = _merge_translation(desc, dom, sname, tx)
-
-    return {
-        "domain": dom,
-        "name": sname,
-        "id": id,
-        "display_name": merged["name"],
-        "description": merged["description"],
-        "fields": merged["fields"],
-        "target": merged["target"],
-        "supports_response": _response_str(svc),
-        "response": merged["response"],
-    }
-
-
 def _response_str(svc) -> str:
     resp = getattr(svc, "supports_response", None) if svc else None
     if resp is None:

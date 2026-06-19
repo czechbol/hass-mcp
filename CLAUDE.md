@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 ## What this is
 
 HACS-installable Home Assistant custom integration that mounts a **Model Context
-Protocol** (MCP) server inside HA at `POST /api/hass_mcp`. Exposes ~39 generic
+Protocol** (MCP) server inside HA at `POST /api/hass_mcp`. Exposes ~32 generic
 meta-tools (`ha_*`) covering the full HA admin surface. Stateless Streamable
 HTTP transport, JSON-RPC body, reuses HA bearer auth.
 

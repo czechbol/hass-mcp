@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Fully Featured Home Assistant MCP Server",
+        "title": "Native MCP for Home Assistant",
         "description": "Mounts an MCP endpoint at /api/hass_mcp using your Home Assistant long-lived access tokens for authentication.",
         "data": {
           "allow_write": "Allow write tools (call_service, set_state, registry updates, config-entry mutations)",
@@ -13,13 +13,13 @@
       }
     },
     "abort": {
-      "single_instance_allowed": "Only one Fully Featured Home Assistant MCP Server instance is supported."
+      "single_instance_allowed": "Only one Native MCP for Home Assistant instance is supported."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Fully Featured Home Assistant MCP Server options",
+        "title": "Native MCP for Home Assistant options",
         "data": {
           "allow_write": "Allow write tools",
           "allow_destructive": "Allow destructive tools",

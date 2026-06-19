@@ -5,6 +5,33 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking — tool names.** Consolidated confusable tools into generic
+  meta-tools to reduce `tools/list` context pollution. Clients that call the
+  old names must migrate:
+  - `ha_logbook` → `ha_history` with `kind=logbook` (state history is now
+    `ha_history` with `kind=state_changes`).
+  - `ha_conversation` → `ha_assist` with `op=converse`;
+    `ha_intent` → `ha_assist` with `op=handle_intent`.
+  - `ha_get_config` / `ha_check_config` / `ha_get_system_health` /
+    `ha_error_log` / `ha_system_log` → `ha_system` with
+    `op=get_config|check_config|get_health|read_error_log|read_system_log|clear_system_log`.
+- `tools/list` now omits tools whose permission class is disabled
+  (`allow_write`/`allow_destructive`/`allow_fire_event`) instead of listing
+  them and failing the call. A default install lists ~28 tools instead of 32.
+  Disabled capabilities are noted in the `initialize` instructions so they
+  stay discoverable. Clients cache the list — reconnect after changing
+  options to see the updated set.
+- Slimmed the shared pagination fields (`limit`/`offset`) in tool schemas to
+  trim catalog weight.
+
+### Removed
+
+- **Breaking** — `ha_describe_service`. Its output was byte-identical to a
+  single row of `ha_list_services`; use
+  `ha_list_services(domain="<d>", service_pattern="<d>.<s>")`.
+
 ## [1.1.1] - 2026-05-17
 
 ### Fixed

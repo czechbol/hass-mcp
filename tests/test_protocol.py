@@ -81,6 +81,38 @@ async def test_tools_list_emits_registered(
 
 
 @pytest.mark.asyncio
+async def test_tools_list_omits_disabled(hass: MagicMock, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def handler(hass):
+        return {"ok": True}
+
+    fake_tools = {
+        "ut_read": ToolDef(
+            name="ut_read",
+            description="d",
+            input_schema=schema(),
+            handler=handler,
+        ),
+        "ut_destructive": ToolDef(
+            name="ut_destructive",
+            description="d",
+            input_schema=schema(),
+            handler=handler,
+            requires_destructive=True,
+        ),
+    }
+    monkeypatch.setattr(protocol_mod, "TOOLS", fake_tools)
+    # Default options: allow_destructive off → destructive tool hidden from list.
+    hass.data = {protocol_mod.DOMAIN: {"options": {}}}
+
+    response = await dispatch(
+        hass,
+        {"jsonrpc": "2.0", "id": 8, "method": "tools/list"},
+    )
+    names = [t["name"] for t in response["result"]["tools"]]
+    assert names == ["ut_read"]
+
+
+@pytest.mark.asyncio
 async def test_tools_call_executes_handler(
     hass: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:

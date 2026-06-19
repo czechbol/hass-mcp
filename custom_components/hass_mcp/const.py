@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "hass_mcp"
-TITLE: Final = "Fully Featured Home Assistant MCP Server"
+TITLE: Final = "Native MCP for Home Assistant"
 
 VIEW_URL: Final = "/api/hass_mcp"
 
@@ -21,4 +21,4 @@ DEFAULT_RATE_LIMIT_PER_MINUTE: Final = 600
 
 PROTOCOL_VERSION: Final = "2025-06-18"
 SERVER_NAME: Final = "hass_mcp"
-SERVER_VERSION: Final = "1.1.1"
+SERVER_VERSION: Final = "2.0.0"
