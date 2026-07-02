@@ -57,6 +57,7 @@ _OPS = (
         required=["op"],
     ),
     read_only=False,
+    write_ops=["clear_system_log"],
 )
 async def ha_system(
     hass: HomeAssistant,

@@ -83,6 +83,8 @@ def _redact(d: Any) -> Any:
         required=["op"],
     ),
     read_only=False,
+    write_ops=["reload", "unload", "setup", "update_options"],
+    destructive_ops=["remove"],
 )
 async def ha_config_entries(
     hass: HomeAssistant,

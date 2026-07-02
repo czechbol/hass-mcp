@@ -47,7 +47,8 @@ _OPS = ("list", "get", "create", "update", "delete", "reload")
     ),
     read_only=False,
     idempotent=False,
-    requires_write=True,
+    write_ops=["create", "update", "reload"],
+    destructive_ops=["delete"],
 )
 async def ha_yaml_config(
     hass: HomeAssistant,

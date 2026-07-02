@@ -145,21 +145,31 @@ Limitations:
 
 ## Permissions model
 
-Three integration options gate tool classes:
+Two independent layers guard every mutating call:
 
-| Option              | Default | Tools it enables                                                                                                                |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `allow_write`       | ✅ on   | `ha_call_service`, `ha_set_state`, `ha_registry` updates, `ha_config_entries` mutations, `ha_config_flow`, `ha_assist` |
-| `allow_destructive` | ❌ off  | `ha_delete_state`, `ha_registry` deletes                                                                                        |
-| `allow_fire_event`  | ❌ off  | `ha_fire_event`                                                                                                                 |
+**1. Server policy** — three integration options gate tool *classes*. For
+meta-tools the gate is applied **per `op`** (e.g. `ha_registry op=delete` is
+destructive while `op=get` is a read):
 
-The MCP server itself runs as the HA user who minted the token; all writes go
-through HA's normal auth/permission machinery.
+| Option              | Default | Enables                                                                                                                                                                                     |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allow_write`       | ✅ on   | write ops — `ha_call_service`, `ha_set_state`, create/update/reload across `ha_registry` / `ha_config_entries` / `ha_helper` / `ha_yaml_config` / `ha_blueprint` / `ha_energy`, `ha_config_flow`, `ha_assist`, `ha_hacs` |
+| `allow_destructive` | ❌ off  | destructive ops — `ha_delete_state`, and delete/remove/purge/revoke/restore/clear across `ha_registry`, `ha_config_entries`, `ha_helper`, `ha_backup`, `ha_yaml_config`, `ha_blueprint`, `ha_statistics`, `ha_recorder`, `ha_auth`, `ha_lovelace` |
+| `allow_fire_event`  | ❌ off  | `ha_fire_event`                                                                                                                                                                             |
+
+Tool classes that are disabled are omitted from `tools/list` entirely.
+
+**2. Effective user** — every tool call executes as the Home Assistant user who
+owns the bearer token, and HA's own permission machinery enforces that user's
+rights. A non-admin token cannot perform admin-only actions. Mutating calls
+**fail closed** if the request carries no authenticated user.
 
 ## Security notes
 
-- Anyone with a long-lived token has root-equivalent control over HA.
-  Issue tokens to clients you trust; rotate when revoking access.
+- A token grants exactly its **owner's** permissions. An admin token has
+  admin-level control; to limit a client, mint its token under an
+  appropriately-privileged (e.g. non-admin) HA user. Rotate tokens when
+  revoking access.
 - Only expose `/api/hass_mcp` over HTTPS in production.
 - If you front HA with a reverse proxy, ensure the `Authorization` header is
   forwarded.

@@ -33,6 +33,7 @@ from .const import (
     SERVER_NAME,
     SERVER_VERSION,
 )
+from .identity import current_user
 from .registry import TOOLS, ToolDef
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,20 +65,23 @@ def _ok(req_id: Any, result: Any) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
 
-async def dispatch(hass: HomeAssistant, body: Any) -> Any | None:
+async def dispatch(hass: HomeAssistant, body: Any, user: Any = None) -> Any | None:
     """Dispatch a single JSON-RPC message or a batch. Returns the response, or
     ``None`` for notifications (no response expected).
+
+    ``user`` is the authenticated HA user that owns the request's bearer token;
+    tool calls execute as that user.
     """
     if isinstance(body, list):
         if not body:
             return _err(None, _INVALID_REQUEST, "empty batch")
-        responses = [await _dispatch_one(hass, m) for m in body]
+        responses = [await _dispatch_one(hass, m, user) for m in body]
         filtered = [r for r in responses if r is not None]
         return filtered or None
-    return await _dispatch_one(hass, body)
+    return await _dispatch_one(hass, body, user)
 
 
-async def _dispatch_one(hass: HomeAssistant, msg: Any) -> dict[str, Any] | None:
+async def _dispatch_one(hass: HomeAssistant, msg: Any, user: Any = None) -> dict[str, Any] | None:
     if not isinstance(msg, dict):
         return _err(None, _INVALID_REQUEST, "message must be an object")
     if msg.get("jsonrpc") != "2.0":
@@ -92,7 +96,7 @@ async def _dispatch_one(hass: HomeAssistant, msg: Any) -> dict[str, Any] | None:
         return _err(req_id, _INVALID_PARAMS, "params must be an object")
 
     try:
-        result = await _route(hass, method, params)
+        result = await _route(hass, method, params, user)
     except JsonRpcError as e:
         if is_notification:
             return None
@@ -108,7 +112,7 @@ async def _dispatch_one(hass: HomeAssistant, msg: Any) -> dict[str, Any] | None:
     return _ok(req_id, result)
 
 
-async def _route(hass: HomeAssistant, method: str, params: dict[str, Any]) -> Any:
+async def _route(hass: HomeAssistant, method: str, params: dict[str, Any], user: Any = None) -> Any:
     if method == "initialize":
         return _initialize()
     if method in ("notifications/initialized", "initialized"):
@@ -118,7 +122,7 @@ async def _route(hass: HomeAssistant, method: str, params: dict[str, Any]) -> An
     if method == "tools/list":
         return _tools_list(hass, params)
     if method == "tools/call":
-        return await _tools_call(hass, params)
+        return await _tools_call(hass, params, user)
     # Resources/prompts/sampling — advertise empty so spec-compliant clients still work.
     if method == "resources/list":
         return {"resources": []}
@@ -159,7 +163,9 @@ def _tools_list(hass: HomeAssistant, _params: dict[str, Any]) -> dict[str, Any]:
     return {"tools": [t.to_listing() for t in TOOLS.values() if _gate(hass, t)]}
 
 
-async def _tools_call(hass: HomeAssistant, params: dict[str, Any]) -> dict[str, Any]:
+async def _tools_call(
+    hass: HomeAssistant, params: dict[str, Any], user: Any = None
+) -> dict[str, Any]:
     name = params.get("name")
     if not isinstance(name, str):
         raise JsonRpcError(_INVALID_PARAMS, "tools/call requires string 'name'")
@@ -170,13 +176,36 @@ async def _tools_call(hass: HomeAssistant, params: dict[str, Any]) -> dict[str, 
     if tool_def is None:
         raise JsonRpcError(_METHOD_NOT_FOUND, f"unknown tool: {name}")
 
+    # Layer 1a — tool-level server policy (also drives tools/list filtering).
     if not _gate(hass, tool_def):
         return _tool_error(
             f"tool '{name}' is disabled by integration options "
             f"(allow_write/allow_destructive/allow_fire_event); enable it in HA UI"
         )
 
-    write_kind = (
+    # Layer 1b — per-op server policy for op-dispatch meta-tools.
+    op = args.get("op")
+    op_class = _op_class(tool_def, op)
+    if op_class and not _op_allowed(hass, op_class):
+        return _tool_error(
+            f"op '{op}' is a {op_class} operation, disabled by integration options "
+            f"(allow_{op_class}); enable it in the integration's Configure dialog"
+        )
+
+    # Layer 2 — mutating ops execute as the token's user; fail closed if absent.
+    mutating = bool(
+        tool_def.requires_write
+        or tool_def.requires_destructive
+        or tool_def.requires_fire_event
+        or op_class
+    )
+    if mutating and user is None:
+        return _tool_error(
+            f"tool '{name}' mutates state and runs as your token's user, but no "
+            f"authenticated user is present; refusing"
+        )
+
+    write_kind = op_class or (
         "destructive"
         if tool_def.requires_destructive
         else "write"
@@ -185,6 +214,7 @@ async def _tools_call(hass: HomeAssistant, params: dict[str, Any]) -> dict[str, 
     )
     _LOGGER.info("hass_mcp tools/call %s [%s]", name, write_kind)
 
+    token = current_user.set(user)
     try:
         result = await tool_def.handler(hass, **args)
     except _ToolError as e:
@@ -195,8 +225,30 @@ async def _tools_call(hass: HomeAssistant, params: dict[str, Any]) -> dict[str, 
     except Exception as e:
         _LOGGER.exception("Tool %s failed", name)
         return _tool_error(f"{type(e).__name__}: {e}")
+    finally:
+        current_user.reset(token)
 
     return _tool_success(result)
+
+
+def _op_class(t: ToolDef, op: Any) -> str | None:
+    """Permission class of a meta-tool op: 'destructive', 'write', or None (read)."""
+    if not isinstance(op, str):
+        return None
+    if op in t.destructive_ops:
+        return "destructive"
+    if op in t.write_ops:
+        return "write"
+    return None
+
+
+def _op_allowed(hass: HomeAssistant, op_class: str) -> bool:
+    opts = hass.data.get(DOMAIN, {}).get("options", {})
+    if op_class == "destructive":
+        return opts.get(CONF_ALLOW_DESTRUCTIVE, False)
+    if op_class == "write":
+        return opts.get(CONF_ALLOW_WRITE, True)
+    return True
 
 
 def _gate(hass: HomeAssistant, t: ToolDef) -> bool:

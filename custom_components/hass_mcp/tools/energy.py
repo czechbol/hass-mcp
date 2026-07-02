@@ -31,6 +31,7 @@ _OPS = ("get_prefs", "save_prefs", "validate")
         required=["op"],
     ),
     read_only=False,
+    write_ops=["save_prefs"],
 )
 async def ha_energy(
     hass: HomeAssistant,

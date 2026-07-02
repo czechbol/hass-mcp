@@ -45,6 +45,8 @@ _OPS = ("list", "get", "import", "delete", "substitute")
         required=["op", "domain"],
     ),
     read_only=False,
+    write_ops=["import"],
+    destructive_ops=["delete"],
 )
 async def ha_blueprint(
     hass: HomeAssistant,

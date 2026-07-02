@@ -25,9 +25,18 @@ class ToolDef:
     handler: Handler
     output_schema: dict[str, Any] | None = None
     annotations: dict[str, Any] = field(default_factory=dict)
+    # Tool-level permission class. Drives both tools/list filtering and
+    # call-gating. Use for single-purpose tools whose whole surface is one
+    # class (ha_set_state, ha_call_service, ha_fire_event, …).
     requires_write: bool = False
     requires_destructive: bool = False
     requires_fire_event: bool = False
+    # Op-level permission classes for op-dispatch meta-tools. Maps the `op`
+    # argument value to the class it needs. Gates the call only (never
+    # tools/list — a meta-tool with gated ops still has readable ops). Ops not
+    # listed here are treated as reads.
+    write_ops: frozenset[str] = field(default_factory=frozenset)
+    destructive_ops: frozenset[str] = field(default_factory=frozenset)
 
     def to_listing(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -58,11 +67,17 @@ def tool(
     requires_write: bool = False,
     requires_destructive: bool = False,
     requires_fire_event: bool = False,
+    write_ops: list[str] | None = None,
+    destructive_ops: list[str] | None = None,
 ) -> Callable[[Handler], Handler]:
     """Register an async tool handler.
 
     Handlers receive ``hass`` plus the validated input fields as kwargs and
     return JSON-serialisable data (typically a dict).
+
+    ``write_ops`` / ``destructive_ops`` gate individual ``op`` values of an
+    op-dispatch meta-tool. Prefer these over the tool-level ``requires_*``
+    flags whenever a single tool mixes read and mutating ops.
     """
 
     def deco(func: Handler) -> Handler:
@@ -84,6 +99,8 @@ def tool(
             requires_write=requires_write,
             requires_destructive=requires_destructive,
             requires_fire_event=requires_fire_event,
+            write_ops=frozenset(write_ops or ()),
+            destructive_ops=frozenset(destructive_ops or ()),
         )
         return func
 

@@ -187,3 +187,113 @@ async def test_tools_call_handler_raises_is_isolated(
     assert "error" not in response
     assert response["result"]["isError"] is True
     assert "boom" in response["result"]["content"][0]["text"]
+
+
+def _meta_tool(handler) -> dict:
+    return {
+        "ut_meta": ToolDef(
+            name="ut_meta",
+            description="d",
+            input_schema=schema(properties={"op": {"type": "string"}}),
+            handler=handler,
+            write_ops=frozenset({"create"}),
+            destructive_ops=frozenset({"delete"}),
+        )
+    }
+
+
+async def _call_meta(hass, op, user=object()):
+    return await dispatch(
+        hass,
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "ut_meta", "arguments": {"op": op}},
+        },
+        user,
+    )
+
+
+@pytest.mark.asyncio
+async def test_op_gate_blocks_destructive_when_disabled(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _meta_tool(handler))
+    # Default options: allow_destructive off. User is present, so this is the
+    # op-gate rejecting, not fail-closed.
+    resp = await _call_meta(hass, "delete")
+    assert resp["result"]["isError"] is True
+    assert "destructive" in resp["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_op_gate_blocks_write_when_write_disabled(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _meta_tool(handler))
+    hass.data = {protocol_mod.DOMAIN: {"options": {"allow_write": False}}}
+    resp = await _call_meta(hass, "create")
+    assert resp["result"]["isError"] is True
+    assert "write" in resp["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_op_gate_allows_destructive_when_enabled(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _meta_tool(handler))
+    hass.data = {protocol_mod.DOMAIN: {"options": {"allow_destructive": True}}}
+    resp = await _call_meta(hass, "delete")
+    assert resp["result"]["isError"] is False
+    assert resp["result"]["structuredContent"] == {"ran": True}
+
+
+@pytest.mark.asyncio
+async def test_read_op_ungated_without_user(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _meta_tool(handler))
+    # 'list' isn't a write/destructive op → read → allowed even with no user.
+    resp = await _call_meta(hass, "list", user=None)
+    assert resp["result"]["isError"] is False
+
+
+@pytest.mark.asyncio
+async def test_fail_closed_mutating_without_user(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _meta_tool(handler))
+    # allow_write defaults on, so the write op passes the toggle — but no user
+    # is present, so it must fail closed.
+    resp = await _call_meta(hass, "create", user=None)
+    assert resp["result"]["isError"] is True
+    assert "authenticated user" in resp["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_mutating_with_user_proceeds(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _meta_tool(handler))
+    resp = await _call_meta(hass, "create", user=object())
+    assert resp["result"]["isError"] is False
+    assert resp["result"]["structuredContent"] == {"ran": True}

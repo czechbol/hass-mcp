@@ -100,7 +100,10 @@ class MCPView(HomeAssistantView):
         except json.JSONDecodeError as e:
             return _bad_request(f"invalid JSON: {e}")
 
-        response = await dispatch(self._hass, body)
+        # requires_auth=True guarantees an authenticated user on the request;
+        # tool calls execute as this user (see identity.py).
+        user = request.get("hass_user")
+        response = await dispatch(self._hass, body, user)
         if response is None:
             return web.Response(status=202)
 

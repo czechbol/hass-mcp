@@ -43,8 +43,8 @@ _OPS = ("current_user", "list_tokens", "create_long_lived_token", "delete_refres
     ),
     read_only=False,
     destructive=True,
-    requires_write=True,
-    requires_destructive=True,
+    write_ops=["create_long_lived_token"],
+    destructive_ops=["delete_refresh_token"],
 )
 async def ha_auth(
     hass: HomeAssistant,

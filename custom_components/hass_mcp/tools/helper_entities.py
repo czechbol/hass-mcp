@@ -51,7 +51,8 @@ _OPS = ("list", "create", "update", "delete")
     ),
     read_only=False,
     idempotent=False,
-    requires_write=True,
+    write_ops=["create", "update"],
+    destructive_ops=["delete"],
 )
 async def ha_helper(
     hass: HomeAssistant,

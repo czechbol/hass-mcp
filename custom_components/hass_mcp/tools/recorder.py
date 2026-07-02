@@ -58,8 +58,7 @@ _OPS = ("info", "purge", "purge_entities")
     ),
     read_only=False,
     destructive=True,
-    requires_write=True,
-    requires_destructive=True,
+    destructive_ops=["purge", "purge_entities"],
 )
 async def ha_recorder(
     hass: HomeAssistant,

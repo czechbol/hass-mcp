@@ -9,7 +9,6 @@ import orjson
 import yaml
 from homeassistant.core import HomeAssistant
 
-from ..const import CONF_ALLOW_DESTRUCTIVE, DOMAIN
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 from ..ws import WsCallError, ws_call
@@ -81,7 +80,8 @@ _OPS = (*_READ_OPS, *_WRITE_OPS, *_DESTRUCTIVE_OPS)
         required=["op"],
     ),
     read_only=False,
-    requires_write=True,
+    write_ops=list(_WRITE_OPS),
+    destructive_ops=list(_DESTRUCTIVE_OPS),
 )
 async def ha_lovelace(
     hass: HomeAssistant,
@@ -96,15 +96,6 @@ async def ha_lovelace(
 ) -> dict[str, Any]:
     if op not in _OPS:
         raise ToolError(f"unknown op '{op}'")
-
-    if op in _DESTRUCTIVE_OPS:
-        opts = hass.data.get(DOMAIN, {}).get("options", {})
-        if not opts.get(CONF_ALLOW_DESTRUCTIVE, False):
-            raise ToolError(
-                f"op '{op}' requires allow_destructive=true. Toggle it in "
-                "HA → Settings → Devices & Services → Native MCP for Home Assistant → "
-                "Configure (not a per-call argument)."
-            )
 
     if op == "info":
         return await _call(hass, "lovelace/info")
