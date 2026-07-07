@@ -21,94 +21,43 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ### Security
 
-- **Tool calls now execute as the token's owner, not a substituted admin.**
-  Previously every WebSocket-backed call ran as the first active admin
-  (`admins[0]`), so any valid bearer token gained admin rights. Calls now run
-  as the Home Assistant user who owns the token, and HA's own permission
-  machinery enforces that user's rights. Mutating operations **fail closed**
-  when no authenticated user is present. `ha_auth` now acts on the calling
-  token's own user (it too previously used `admins[0]`, letting any token mint
-  an admin long-lived token).
-- **Admin-only operations now require an admin token.** Tools that mutate via
-  direct HA APIs with no per-user check of their own — `ha_registry`,
+- Tool calls now execute as the token's owner instead of a substituted admin
+  (`admins[0]`); `ha_auth` likewise acts on the caller. Mutating ops fail closed
+  with no user.
+- Admin-only operations now require an admin token: mutations on `ha_registry`,
   `ha_config_entries`, `ha_config_flow`, `ha_energy`, `ha_statistics`,
   `ha_set_state`, `ha_delete_state`, `ha_yaml_config`, `ha_blueprint`,
-  `ha_recorder`, `ha_system`, `ha_hacs` — now require the token's user to be an
-  administrator (matching Home Assistant's own policy for those operations).
-  Their read ops remain available to any token. In particular `ha_yaml_config`
-  (automation/script authoring) and `ha_hacs op=download` (installs code) were
-  previously reachable by any write-enabled token.
-- `ha_blueprint` now rejects unsafe paths for **both** `op=import` (`filename`)
-  and `op=delete` (`path`) — path separators that escape, `..` segments, and
-  non-`.yaml` targets. Home Assistant's `async_remove_blueprint` performs an
-  unsanitized path join + `unlink`, so `op=delete` was an arbitrary-file-delete
-  vector; the guard closes it.
-- `ha_hacs op=download` (installs integration code) is now classed **destructive**
-  (default off) rather than a plain write.
-- **Rate limiter now counts JSON-RPC batches.** A batch of N messages costs N
-  slots and batches are capped (100), so a single request can no longer bypass
-  the per-minute limit.
-- **The endpoint fails closed when the integration is unloaded.** Previously the
-  aiohttp view kept serving after unload and fell back to permissive option
-  defaults (re-enabling writes); it now rejects requests until the entry is
-  loaded again.
-- **Sensitive reads now require an admin token.** `ha_system op=read_error_log`
-  / `read_system_log` / `get_config` (logs may contain secrets; core config
-  exposes precise location), `ha_config_entries op=list/get`, and all
-  `ha_diagnostics` ops now require the token's user to be an administrator.
-  Core monitoring reads (states, history, statistics, registry inventory,
-  traces) remain available to any token.
-- `ha_render_template` now bounds execution with a render timeout, so a runaway
-  template can't block the event loop. The full (`limited=false`) engine
-  remains the default.
-- **Destructive/write ops are now gated per `op`.** Several meta-tools
-  (`ha_registry`, `ha_config_entries`, `ha_blueprint`, `ha_energy`,
-  `ha_statistics`, `ha_helper`, `ha_backup`, `ha_yaml_config`) previously
-  declared their gating only in prose or a coarse whole-tool flag, so
-  create/update/delete/purge/restore could run with `allow_destructive` (or
-  even `allow_write`) disabled. Gating is now declarative and enforced
-  centrally before the handler runs.
+  `ha_recorder`, `ha_system`, `ha_hacs`, plus sensitive reads (`ha_system`
+  logs/`get_config`, `ha_config_entries` list/get, `ha_diagnostics`).
+- `ha_blueprint` import/delete reject path-traversal; `ha_hacs op=download`
+  reclassified destructive; `ha_render_template` gains a render timeout.
+- Rate limiter now counts JSON-RPC batches (capped at 100); the endpoint fails
+  closed when the integration is unloaded.
 
 ### Changed
 
-- Destructive ops (`delete` / `remove` / `purge` / `revoke` / `restore` /
-  `clear`) now require `allow_destructive` (default **off**) rather than
-  running under `allow_write`. Workflows that relied on the old behavior must
-  enable the toggle.
-- Meta-tool permission gating moved from whole-tool `requires_*` flags to
-  declarative per-`op` `write_ops` / `destructive_ops`. This also fixes
-  **over-gating**: `ha_recorder op=info` and `ha_hacs` read ops no longer
-  require a write/destructive toggle and reappear in the default tool list.
+- Meta-tool permissions are gated per `op` via `write_ops`/`destructive_ops`.
+  Destructive ops (delete/remove/purge/revoke/restore/clear) now require
+  `allow_destructive` (default off) rather than `allow_write`.
 
 ## [2.0.0] - 2026-06-19
 
 ### Changed
 
-- **Breaking — tool names.** Consolidated confusable tools into generic
-  meta-tools to reduce `tools/list` context pollution. Clients that call the
-  old names must migrate:
-  - `ha_logbook` → `ha_history` with `kind=logbook` (state history is now
-    `ha_history` with `kind=state_changes`).
-  - `ha_conversation` → `ha_assist` with `op=converse`;
-    `ha_intent` → `ha_assist` with `op=handle_intent`.
-  - `ha_get_config` / `ha_check_config` / `ha_get_system_health` /
-    `ha_error_log` / `ha_system_log` → `ha_system` with
-    `op=get_config|check_config|get_health|read_error_log|read_system_log|clear_system_log`.
-- `tools/list` now omits tools whose permission class is disabled
-  (`allow_write`/`allow_destructive`/`allow_fire_event`) instead of listing
-  them and failing the call. A default install lists ~28 tools instead of 32.
-  Disabled capabilities are noted in the `initialize` instructions so they
-  stay discoverable. Clients cache the list — reconnect after changing
-  options to see the updated set.
-- Slimmed the shared pagination fields (`limit`/`offset`) in tool schemas to
-  trim catalog weight.
+- **Breaking — tool renames** (consolidated to shrink `tools/list`):
+  - `ha_logbook` → `ha_history` (`kind=logbook`); state history is
+    `ha_history` (`kind=state_changes`).
+  - `ha_conversation`/`ha_intent` → `ha_assist` (`op=converse`/`handle_intent`).
+  - `ha_get_config`/`ha_check_config`/`ha_get_system_health`/`ha_error_log`/
+    `ha_system_log` → `ha_system` (`op=…`).
+- `tools/list` now omits tools whose permission class is disabled (reconnect to
+  refresh). Slimmed pagination fields in schemas.
 - Integration display name is now **Native MCP for Home Assistant**.
 
 ### Removed
 
-- **Breaking** — `ha_describe_service`. Its output was byte-identical to a
-  single row of `ha_list_services`; use
-  `ha_list_services(domain="<d>", service_pattern="<d>.<s>")`.
+- **Breaking** — `ha_describe_service` (use `ha_list_services` with a
+  `service_pattern`).
 
 ## [1.1.1] - 2026-05-17
 
