@@ -26,11 +26,14 @@ After the restart:
 
    | Option | Default | Enables |
    |---|---|---|
-   | `allow_write` | ✅ on | `ha_call_service`, `ha_set_state`, `ha_yaml_config`, registry updates, helper CRUD, config entry mutations, `ha_assist` |
-   | `allow_destructive` | ❌ off | `ha_delete_state`, registry deletes, `ha_recorder purge`, `ha_auth delete_refresh_token` |
+   | `allow_write` | ✅ on | write ops (call_service, set_state, create/update, …) |
+   | `allow_destructive` | ❌ off | delete/remove/purge/restore/clear ops |
    | `allow_fire_event` | ❌ off | `ha_fire_event` |
 
-3. (Optional) `rate_limit_per_minute` — defaults to 600 req/min per token; set
+   Calls run as your token's user. Some ops also need an **admin** token: all
+   registry/config/state writes, and reads of logs, diagnostics, and core config.
+
+3. (Optional) `rate_limit_per_minute` — defaults to 600 req/min per user; set
    to 0 to disable.
 
 You can change these later via **Configure** on the integration card.
@@ -39,8 +42,8 @@ You can change these later via **Configure** on the integration card.
 
 **Profile → Security → Long-Lived Access Tokens → Create Token**. Name it
 something like `mcp-claude-code`. Copy the token immediately — Home Assistant
-never shows it again. Treat it like a root password; it grants administrator
-access.
+never shows it again. Guard it — the token grants its user's access (an admin
+token means full control).
 
 ## 4. Wire up an MCP client
 

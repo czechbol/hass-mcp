@@ -12,20 +12,27 @@ required and most-useful arguments, and a representative example.
 
 ## Permissions model
 
-Each tool is tagged with one or more capability flags. The integration owner
-opts in to each class via the config flow:
+Two checks gate every call.
 
-| Flag | Default | Behavior |
+**1. Server toggles** — the owner opts in per class via the config flow:
+
+| Flag | Default | Enables |
 |---|---|---|
-| `allow_write` | ✅ on | Tools that mutate Home Assistant state |
-| `allow_destructive` | ❌ off | Tools that delete state, registry rows, or recorder data |
-| `allow_fire_event` | ❌ off | Raw event-bus writes (`ha_fire_event`) |
+| `allow_write` | ✅ on | write ops |
+| `allow_destructive` | ❌ off | delete / remove / purge / restore / clear ops |
+| `allow_fire_event` | ❌ off | `ha_fire_event` |
 
-A gated tool returns an `isError:true` response with a hint telling the
-caller which flag is missing — no silent failures.
+For meta-tools this is per `op` (e.g. `ha_registry op=delete` is destructive,
+`op=get` is a read).
 
-The MCP server itself always runs as the user who minted the long-lived
-token. Any further checks (entity permissions, area scopes) apply normally.
+**2. Your token's user** — calls run as the user who minted the token, and HA
+enforces that user's permissions. Ops HA treats as admin-only — direct writes to
+the registry / config entries / config flow / state machine / energy /
+statistics, and reads of logs, diagnostics, and core config — need an **admin**
+token.
+
+A blocked call returns `isError:true` naming the missing flag or permission —
+no silent failures.
 
 ## Entity discovery
 
