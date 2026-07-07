@@ -47,7 +47,9 @@ _OPS = (
         required=["op"],
     ),
     read_only=False,
-    write_ops=["refresh", "download"],
+    requires_admin=True,
+    write_ops=["refresh"],
+    destructive_ops=["download"],
 )
 async def ha_hacs(
     hass: HomeAssistant,

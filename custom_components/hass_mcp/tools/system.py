@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
+from ..identity import user_context
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 from ..ws import WsCallError, ws_call
@@ -57,6 +58,7 @@ _OPS = (
         required=["op"],
     ),
     read_only=False,
+    requires_admin=True,
     destructive_ops=["clear_system_log"],
 )
 async def ha_system(
@@ -94,7 +96,9 @@ async def ha_system(
 
     if op == "clear_system_log":
         try:
-            await hass.services.async_call("system_log", "clear", {}, blocking=True)
+            await hass.services.async_call(
+                "system_log", "clear", {}, blocking=True, context=user_context()
+            )
         except Exception as e:
             raise ToolError(f"clear failed: {e}") from e
         return {"cleared": True}

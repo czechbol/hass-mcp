@@ -46,6 +46,7 @@ _OPS = ("list", "get", "import", "delete", "substitute")
         required=["op", "domain"],
     ),
     read_only=False,
+    requires_admin=True,
     write_ops=["import"],
     destructive_ops=["delete"],
 )
@@ -144,6 +145,11 @@ async def ha_blueprint(
     if op == "delete":
         if not path:
             raise ToolError("op=delete requires 'path'")
+        # HA joins this straight onto the blueprint folder and unlinks with no
+        # sanitization, so an absolute or ../-laden path would escape. Require a
+        # bare relative .yaml path under blueprints/<domain>/.
+        if os.path.isabs(path) or ".." in path.split("/") or not path.endswith((".yaml", ".yml")):
+            raise ToolError("path must be a relative .yaml path with no '..' segments")
         try:
             await bps.async_remove_blueprint(path)
         except Exception as e:

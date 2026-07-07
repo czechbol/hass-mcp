@@ -323,6 +323,11 @@ def test_direct_api_tools_require_admin() -> None:
         "ha_config_flow",
         "ha_energy",
         "ha_statistics",
+        "ha_yaml_config",
+        "ha_blueprint",
+        "ha_recorder",
+        "ha_system",
+        "ha_hacs",
     ):
         assert TOOLS[name].requires_admin is True, name
     # ha_auth acts on the caller's own account — must NOT require admin.

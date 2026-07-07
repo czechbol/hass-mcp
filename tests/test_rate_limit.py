@@ -41,6 +41,17 @@ def test_window_resets() -> None:
         assert rl.check("k")[0]
 
 
+def test_cost_charges_multiple_slots() -> None:
+    # A batch of N messages costs N slots (F-004: batches must not bypass).
+    rl = RateLimiter(max_calls=10, window_seconds=60)
+    assert rl.check("k", cost=8)[0]
+    # Only 2 slots left → a cost-3 batch is rejected atomically...
+    assert rl.check("k", cost=3)[0] is False
+    # ...and nothing was recorded, so a cost-2 batch still fits.
+    assert rl.check("k", cost=2)[0]
+    assert rl.check("k")[0] is False
+
+
 def test_invalid_args() -> None:
     with pytest.raises(ValueError):
         RateLimiter(max_calls=0, window_seconds=60)

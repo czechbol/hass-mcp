@@ -59,6 +59,7 @@ _OPS = ("info", "purge", "purge_entities")
     ),
     read_only=False,
     destructive=True,
+    requires_admin=True,
     destructive_ops=["purge", "purge_entities"],
 )
 async def ha_recorder(

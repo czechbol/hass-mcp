@@ -28,8 +28,14 @@ class RateLimiter:
         self._lock = Lock()
         self._checks = 0
 
-    def check(self, key: str) -> tuple[bool, float]:
-        """Record one call against ``key``. Returns (allowed, retry_after_seconds)."""
+    def check(self, key: str, cost: int = 1) -> tuple[bool, float]:
+        """Record ``cost`` calls against ``key``. Returns (allowed, retry_after_seconds).
+
+        ``cost`` > 1 is used for JSON-RPC batches so a single request can't run
+        many messages for one slot. The whole batch is admitted or rejected
+        atomically; nothing is recorded on rejection.
+        """
+        cost = max(1, cost)
         now = time.monotonic()
         with self._lock:
             self._checks += 1
@@ -39,10 +45,10 @@ class RateLimiter:
             cutoff = now - self._window
             while bucket.timestamps and bucket.timestamps[0] < cutoff:
                 bucket.timestamps.popleft()
-            if len(bucket.timestamps) >= self.max_calls:
+            if len(bucket.timestamps) + cost > self.max_calls:
                 retry = self._window - (now - bucket.timestamps[0])
                 return False, max(0.0, retry)
-            bucket.timestamps.append(now)
+            bucket.timestamps.extend([now] * cost)
             return True, 0.0
 
     def _evict_idle(self, now: float) -> None:

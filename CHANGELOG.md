@@ -32,11 +32,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 - **Admin-only operations now require an admin token.** Tools that mutate via
   direct HA APIs with no per-user check of their own — `ha_registry`,
   `ha_config_entries`, `ha_config_flow`, `ha_energy`, `ha_statistics`,
-  `ha_set_state`, `ha_delete_state` — now require the token's user to be an
+  `ha_set_state`, `ha_delete_state`, `ha_yaml_config`, `ha_blueprint`,
+  `ha_recorder`, `ha_system`, `ha_hacs` — now require the token's user to be an
   administrator (matching Home Assistant's own policy for those operations).
-  Their read ops remain available to any token.
-- `ha_blueprint op=import` now rejects `filename` values containing path
-  separators or non-`.yaml` extensions, closing a path-traversal vector.
+  Their read ops remain available to any token. In particular `ha_yaml_config`
+  (automation/script authoring) and `ha_hacs op=download` (installs code) were
+  previously reachable by any write-enabled token.
+- `ha_blueprint` now rejects unsafe paths for **both** `op=import` (`filename`)
+  and `op=delete` (`path`) — path separators that escape, `..` segments, and
+  non-`.yaml` targets. Home Assistant's `async_remove_blueprint` performs an
+  unsanitized path join + `unlink`, so `op=delete` was an arbitrary-file-delete
+  vector; the guard closes it.
+- `ha_hacs op=download` (installs integration code) is now classed **destructive**
+  (default off) rather than a plain write.
+- **Rate limiter now counts JSON-RPC batches.** A batch of N messages costs N
+  slots and batches are capped (100), so a single request can no longer bypass
+  the per-minute limit.
+- **The endpoint fails closed when the integration is unloaded.** Previously the
+  aiohttp view kept serving after unload and fell back to permissive option
+  defaults (re-enabling writes); it now rejects requests until the entry is
+  loaded again.
 - **Destructive/write ops are now gated per `op`.** Several meta-tools
   (`ha_registry`, `ha_config_entries`, `ha_blueprint`, `ha_energy`,
   `ha_statistics`, `ha_helper`, `ha_backup`, `ha_yaml_config`) previously
