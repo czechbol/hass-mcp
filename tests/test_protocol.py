@@ -307,8 +307,10 @@ def test_real_tool_op_classifications() -> None:
     assert TOOLS["ha_system"].destructive_ops == frozenset({"clear_system_log"})
     assert TOOLS["ha_system"].write_ops == frozenset()
     assert TOOLS["ha_statistics"].destructive_ops == frozenset({"clear"})
-    assert TOOLS["ha_auth"].write_ops == frozenset({"create_long_lived_token"})
-    assert TOOLS["ha_auth"].destructive_ops == frozenset({"delete_refresh_token"})
+    assert TOOLS["ha_auth"].write_ops == frozenset()
+    assert TOOLS["ha_auth"].destructive_ops == frozenset(
+        {"create_long_lived_token", "delete_refresh_token"}
+    )
 
 
 def test_direct_api_tools_require_admin() -> None:

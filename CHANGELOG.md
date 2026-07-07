@@ -30,7 +30,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
   `ha_recorder`, `ha_system`, `ha_hacs`, plus sensitive reads (`ha_system`
   logs/`get_config`, `ha_config_entries` list/get, `ha_diagnostics`).
 - `ha_blueprint` import/delete reject path-traversal; `ha_hacs op=download`
-  reclassified destructive; `ha_render_template` gains a render timeout.
+  reclassified destructive; `ha_render_template` gains a best-effort render
+  guard; `ha_fire_event` and `ha_config_flow`/`ha_diagnostics`/`ha_config_entries`
+  reads are admin-gated.
 - Rate limiter now counts JSON-RPC batches (capped at 100); the endpoint fails
   closed when the integration is unloaded.
 

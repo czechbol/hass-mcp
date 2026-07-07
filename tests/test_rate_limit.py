@@ -52,6 +52,14 @@ def test_cost_charges_multiple_slots() -> None:
     assert rl.check("k")[0] is False
 
 
+def test_cost_exceeds_max_on_empty_bucket() -> None:
+    # cost > max_calls with an empty bucket must reject cleanly, not IndexError.
+    rl = RateLimiter(max_calls=3, window_seconds=60)
+    allowed, retry = rl.check("k", cost=5)
+    assert allowed is False
+    assert retry >= 0
+
+
 def test_invalid_args() -> None:
     with pytest.raises(ValueError):
         RateLimiter(max_calls=0, window_seconds=60)

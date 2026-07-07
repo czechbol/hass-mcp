@@ -139,6 +139,7 @@ async def _get_health(hass: HomeAssistant) -> dict[str, Any]:
 
 
 async def _read_error_log(hass: HomeAssistant, lines: int) -> dict[str, Any]:
+    lines = max(1, min(lines, 5000))  # clamp (schema max isn't enforced server-side)
     path = hass.config.path("home-assistant.log")
     if not os.path.exists(path):
         return {"path": path, "lines": [], "note": "log file does not exist"}

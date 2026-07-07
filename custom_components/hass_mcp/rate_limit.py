@@ -46,7 +46,12 @@ class RateLimiter:
             while bucket.timestamps and bucket.timestamps[0] < cutoff:
                 bucket.timestamps.popleft()
             if len(bucket.timestamps) + cost > self.max_calls:
-                retry = self._window - (now - bucket.timestamps[0])
+                # Bucket may be empty when cost alone exceeds max_calls.
+                retry = (
+                    self._window - (now - bucket.timestamps[0])
+                    if bucket.timestamps
+                    else self._window
+                )
                 return False, max(0.0, retry)
             bucket.timestamps.extend([now] * cost)
             return True, 0.0

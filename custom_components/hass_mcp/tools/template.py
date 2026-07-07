@@ -47,8 +47,9 @@ async def ha_render_template(
 ) -> dict[str, Any]:
     tpl = template_helper.Template(template, hass)
     try:
-        # Bound execution so a runaway template can't block the event loop.
-        if tpl.async_render_will_timeout(_RENDER_TIMEOUT, variables=variables):
+        # Best-effort guard against a runaway template (HA's own safety check,
+        # not a hard bound). async_render_will_timeout is a coroutine — await it.
+        if await tpl.async_render_will_timeout(_RENDER_TIMEOUT, variables=variables):
             raise ToolError(f"template render exceeded {_RENDER_TIMEOUT:g}s; simplify the template")
         rendered = tpl.async_render(variables=variables, limited=limited)
     except TemplateError as e:

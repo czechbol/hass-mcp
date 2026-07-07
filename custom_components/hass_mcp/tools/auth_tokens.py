@@ -44,8 +44,9 @@ _OPS = ("current_user", "list_tokens", "create_long_lived_token", "delete_refres
     ),
     read_only=False,
     destructive=True,
-    write_ops=["create_long_lived_token"],
-    destructive_ops=["delete_refresh_token"],
+    # Minting a long-lived token creates a persistent credential that outlives
+    # the caller's own token — treat it as destructive (off by default).
+    destructive_ops=["create_long_lived_token", "delete_refresh_token"],
 )
 async def ha_auth(
     hass: HomeAssistant,

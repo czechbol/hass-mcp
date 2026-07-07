@@ -106,8 +106,10 @@ class MCPView(HomeAssistantView):
 
         limiter = self._get_limiter()
         if limiter is not None:
-            auth = request.headers.get("Authorization", "")
-            key = auth[-32:] if auth else (request.remote or "anon")
+            # Key on the authenticated user (stable, collision-free) rather than
+            # a token substring; fall back to remote address if unavailable.
+            user = request.get("hass_user")
+            key = getattr(user, "id", None) or (request.remote or "anon")
             allowed, retry = limiter.check(key, cost=cost)
             if not allowed:
                 return web.Response(

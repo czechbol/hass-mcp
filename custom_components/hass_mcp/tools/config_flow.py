@@ -67,6 +67,9 @@ def _flow_result_to_dict(r: dict[str, Any]) -> dict[str, Any]:
     idempotent=False,
     requires_admin=True,
     write_ops=["init", "configure", "abort"],
+    # In-progress flows can carry credentials in their form data — admin-only,
+    # consistent with HA's admin-only integrations panel.
+    admin_ops=["list_handlers", "list_progress"],
 )
 async def ha_config_flow(
     hass: HomeAssistant,
