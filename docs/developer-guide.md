@@ -123,7 +123,7 @@ message. For *unexpected* exceptions, the dispatch wraps them as
   (`ha_registry`, `ha_yaml_config`, `ha_helper`). Preferred when you have
   >2 closely related ops; keeps the tool catalog manageable.
 
-Discriminator naming is canonical (see [`CONTEXT.md`](../CONTEXT.md)): the
+Discriminator naming is canonical: the
 action discriminator is **always `op`** (a verb — `list`/`get`/`create`/…);
 add **`kind`** only when one tool spans several resource types. Never
 introduce `mode`/`action`/`type` — that silently reintroduces the catalog
@@ -147,7 +147,7 @@ from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 
-_OPS = ("list", "get")
+_OPS = ("list", "get", "create", "update", "delete")
 
 
 @tool(
@@ -165,10 +165,20 @@ _OPS = ("list", "get")
         },
         required=["op"],
     ),
-    read_only=True,                # mutating? → False
-    # requires_write=True,          # → gated by allow_write
-    # requires_destructive=True,    # → gated by allow_destructive
-    # requires_fire_event=True,     # → gated by allow_fire_event
+    read_only=False,               # this tool mutates
+    # Per-op gating (preferred for op-dispatch meta-tools): the class is
+    # decided by the invoked `op`, enforced centrally before the handler runs.
+    # Ops not listed here are treated as reads.
+    write_ops=["create", "update"],
+    destructive_ops=["delete"],
+    # If the tool mutates via a direct HA API with no per-user check of its own
+    # (registry, config entries/flow, state machine, …) and HA treats the op as
+    # admin-only, add requires_admin=True — the token user must then be an admin
+    # for any mutating op (reads stay open).
+    # requires_admin=True,
+    # For a single-purpose tool, use a whole-tool flag instead (these also
+    # drive tools/list filtering):
+    # requires_write=True / requires_destructive=True / requires_fire_event=True
 )
 async def ha_my_thing(
     hass: HomeAssistant,
@@ -186,7 +196,9 @@ async def ha_my_thing(
         if not id:
             raise ToolError("op=get requires id")
         return {...}
-    raise ToolError(f"unsupported op '{op}'")
+    # create / update / delete reach here only if their op-gate passed and an
+    # effective user is present — no permission code needed in the handler.
+    return {...}
 ```
 
 ### 3. Register the module

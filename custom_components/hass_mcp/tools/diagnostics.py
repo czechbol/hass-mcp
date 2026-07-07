@@ -38,6 +38,9 @@ _OPS = ("list", "config_entry", "device")
         required=["op"],
     ),
     read_only=True,
+    # Diagnostics dumps routinely contain credentials/PII and are admin-only in
+    # HA; gate every op.
+    admin_ops=["list", "config_entry", "device"],
 )
 async def ha_diagnostics(
     hass: HomeAssistant,

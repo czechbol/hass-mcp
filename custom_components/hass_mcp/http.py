@@ -24,6 +24,9 @@ from .rate_limit import RateLimiter
 
 _LOGGER = logging.getLogger(__name__)
 
+# Max JSON-RPC messages in a single batch (bounds per-request work + rate cost).
+MAX_BATCH = 100
+
 
 def _json_default(o: Any) -> Any:
     if isinstance(o, MappingProxyType):
@@ -80,17 +83,11 @@ class MCPView(HomeAssistantView):
         return self._limiter
 
     async def post(self, request: web.Request) -> web.StreamResponse:
-        limiter = self._get_limiter()
-        if limiter is not None:
-            auth = request.headers.get("Authorization", "")
-            key = auth[-32:] if auth else (request.remote or "anon")
-            allowed, retry = limiter.check(key)
-            if not allowed:
-                return web.Response(
-                    status=429,
-                    headers={"Retry-After": str(int(retry) + 1)},
-                    text=f"rate limit exceeded; retry in {retry:.1f}s",
-                )
+        # Fail closed if the config entry has been unloaded. The aiohttp view
+        # cannot be unregistered, so it must refuse rather than fall through to
+        # permissive option defaults.
+        if DOMAIN not in self._hass.data:
+            return web.Response(status=503, text="hass_mcp integration is not loaded")
 
         raw = await request.read()
         if not raw:
@@ -100,7 +97,31 @@ class MCPView(HomeAssistantView):
         except json.JSONDecodeError as e:
             return _bad_request(f"invalid JSON: {e}")
 
-        response = await dispatch(self._hass, body)
+        # A JSON-RPC batch executes every message, so it must cost that many
+        # slots against the rate limiter (and be capped) — otherwise one POST
+        # bypasses the per-minute limit entirely.
+        cost = len(body) if isinstance(body, list) else 1
+        if cost > MAX_BATCH:
+            return _bad_request(f"batch too large: {cost} messages (max {MAX_BATCH})")
+
+        limiter = self._get_limiter()
+        if limiter is not None:
+            # Key on the authenticated user (stable, collision-free) rather than
+            # a token substring; fall back to remote address if unavailable.
+            user = request.get("hass_user")
+            key = getattr(user, "id", None) or (request.remote or "anon")
+            allowed, retry = limiter.check(key, cost=cost)
+            if not allowed:
+                return web.Response(
+                    status=429,
+                    headers={"Retry-After": str(int(retry) + 1)},
+                    text=f"rate limit exceeded; retry in {retry:.1f}s",
+                )
+
+        # requires_auth=True guarantees an authenticated user on the request;
+        # tool calls execute as this user (see identity.py).
+        user = request.get("hass_user")
+        response = await dispatch(self._hass, body, user)
         if response is None:
             return web.Response(status=202)
 

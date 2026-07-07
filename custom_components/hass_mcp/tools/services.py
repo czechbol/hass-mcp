@@ -15,6 +15,7 @@ from homeassistant.exceptions import (
 from homeassistant.helpers import translation
 from homeassistant.helpers.service import async_get_all_descriptions
 
+from ..identity import user_context
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
@@ -208,6 +209,7 @@ async def ha_call_service(
             target=target,
             blocking=blocking,
             return_response=return_response,
+            context=user_context(),
         )
     except ServiceNotFound as e:
         raise ToolError(f"service {domain}.{service} not found; use ha_list_services") from e

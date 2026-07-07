@@ -52,7 +52,7 @@ Layout under `custom_components/hass_mcp/`:
 
 ## Adding a tool
 
-1. New file `tools/my_thing.py`, decorate handler with `@tool(name=..., description=..., input_schema=schema(...), read_only=..., requires_write=..., requires_destructive=..., requires_fire_event=...)`.
+1. New file `tools/my_thing.py`, decorate handler with `@tool(name=..., description=..., input_schema=schema(...), read_only=..., ...)`. For a single-class tool use `requires_write` / `requires_destructive` / `requires_fire_event`; for an op-dispatch meta-tool use per-`op` `write_ops=[...]` / `destructive_ops=[...]` instead (ops not listed are reads). Mutating ops execute as the token owner and fail closed without one — no extra handler code needed.
 2. Add module import to `tools/__init__.py` (side-effect registers).
 3. Update README tool table, `docs/user-guide.md`, `CHANGELOG.md` `[Unreleased]`.
 4. Bump `manifest.json` `version` AND `const.SERVER_VERSION` — both. HA
@@ -78,10 +78,21 @@ required args. `ToolError` messages should name the next step
 
 ## Permissions model
 
-Three option flags gate tool classes:
-`allow_write` (default on), `allow_destructive` (off), `allow_fire_event` (off).
-Plus `rate_limit_per_minute` (default 600). Defined in `const.py`,
-enforced in `protocol.py` per-tool via `ToolDef.requires_*` flags.
+Two layers, both enforced in `protocol.py` `_tools_call`:
+
+1. **Server policy** — `allow_write` (default on), `allow_destructive` (off),
+   `allow_fire_event` (off), defined in `const.py`. Single-purpose tools use
+   tool-level `ToolDef.requires_*` flags (which also drive `tools/list`
+   filtering); op-dispatch meta-tools declare per-`op` `write_ops` /
+   `destructive_ops` on `@tool`, gated per call by the invoked `op`.
+2. **Effective user** — the request's HA user (`request["hass_user"]`) is put
+   on a contextvar in `identity.py`; `ws_call` sets it as `conn.user` (no more
+   `admins[0]`) and service calls pass `Context(user_id=…)`. Mutating ops fail
+   closed with no user. Tools that mutate via direct HA APIs (no per-user check
+   of their own) set `requires_admin=True`, enforced centrally — the token user
+   must be an admin for their mutating ops.
+
+Plus `rate_limit_per_minute` (default 600).
 
 ## Docs
 

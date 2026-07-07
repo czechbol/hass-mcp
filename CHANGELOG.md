@@ -17,35 +17,49 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ### Security
 
+## [2.1.0] - 2026-07-07
+
+### Security
+
+- Tool calls now execute as the token's owner instead of a substituted admin
+  (`admins[0]`); `ha_auth` likewise acts on the caller. Mutating ops fail closed
+  with no user.
+- Admin-only operations now require an admin token: mutations on `ha_registry`,
+  `ha_config_entries`, `ha_config_flow`, `ha_energy`, `ha_statistics`,
+  `ha_set_state`, `ha_delete_state`, `ha_yaml_config`, `ha_blueprint`,
+  `ha_recorder`, `ha_system`, `ha_hacs`, plus sensitive reads (`ha_system`
+  logs/`get_config`, `ha_config_entries` list/get, `ha_diagnostics`).
+- `ha_blueprint` import/delete reject path-traversal; `ha_hacs op=download`
+  reclassified destructive; `ha_render_template` gains a best-effort render
+  guard; `ha_fire_event` and `ha_config_flow`/`ha_diagnostics`/`ha_config_entries`
+  reads are admin-gated.
+- Rate limiter now counts JSON-RPC batches (capped at 100); the endpoint fails
+  closed when the integration is unloaded.
+
+### Changed
+
+- Meta-tool permissions are gated per `op` via `write_ops`/`destructive_ops`.
+  Destructive ops (delete/remove/purge/revoke/restore/clear) now require
+  `allow_destructive` (default off) rather than `allow_write`.
+
 ## [2.0.0] - 2026-06-19
 
 ### Changed
 
-- **Breaking — tool names.** Consolidated confusable tools into generic
-  meta-tools to reduce `tools/list` context pollution. Clients that call the
-  old names must migrate:
-  - `ha_logbook` → `ha_history` with `kind=logbook` (state history is now
-    `ha_history` with `kind=state_changes`).
-  - `ha_conversation` → `ha_assist` with `op=converse`;
-    `ha_intent` → `ha_assist` with `op=handle_intent`.
-  - `ha_get_config` / `ha_check_config` / `ha_get_system_health` /
-    `ha_error_log` / `ha_system_log` → `ha_system` with
-    `op=get_config|check_config|get_health|read_error_log|read_system_log|clear_system_log`.
-- `tools/list` now omits tools whose permission class is disabled
-  (`allow_write`/`allow_destructive`/`allow_fire_event`) instead of listing
-  them and failing the call. A default install lists ~28 tools instead of 32.
-  Disabled capabilities are noted in the `initialize` instructions so they
-  stay discoverable. Clients cache the list — reconnect after changing
-  options to see the updated set.
-- Slimmed the shared pagination fields (`limit`/`offset`) in tool schemas to
-  trim catalog weight.
+- **Breaking — tool renames** (consolidated to shrink `tools/list`):
+  - `ha_logbook` → `ha_history` (`kind=logbook`); state history is
+    `ha_history` (`kind=state_changes`).
+  - `ha_conversation`/`ha_intent` → `ha_assist` (`op=converse`/`handle_intent`).
+  - `ha_get_config`/`ha_check_config`/`ha_get_system_health`/`ha_error_log`/
+    `ha_system_log` → `ha_system` (`op=…`).
+- `tools/list` now omits tools whose permission class is disabled (reconnect to
+  refresh). Slimmed pagination fields in schemas.
 - Integration display name is now **Native MCP for Home Assistant**.
 
 ### Removed
 
-- **Breaking** — `ha_describe_service`. Its output was byte-identical to a
-  single row of `ha_list_services`; use
-  `ha_list_services(domain="<d>", service_pattern="<d>.<s>")`.
+- **Breaking** — `ha_describe_service` (use `ha_list_services` with a
+  `service_pattern`).
 
 ## [1.1.1] - 2026-05-17
 
@@ -105,7 +119,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/czechbol/hass-mcp/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/czechbol/hass-mcp/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/czechbol/hass-mcp/releases/tag/v1.1.1
 [1.1.0]: https://github.com/czechbol/hass-mcp/releases/tag/v1.1.0

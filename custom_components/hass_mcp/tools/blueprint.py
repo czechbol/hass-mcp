@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -45,6 +46,9 @@ _OPS = ("list", "get", "import", "delete", "substitute")
         required=["op", "domain"],
     ),
     read_only=False,
+    requires_admin=True,
+    write_ops=["import"],
+    destructive_ops=["delete"],
 )
 async def ha_blueprint(
     hass: HomeAssistant,
@@ -124,6 +128,14 @@ async def ha_blueprint(
                 raise ToolError(f"yaml parse failed: {e}") from e
 
         target = filename or default_fname
+        # Guard against path traversal — the target must be a bare .yaml
+        # filename written under blueprints/<domain>/, never an escape.
+        if (
+            os.path.basename(target) != target
+            or target in ("", ".", "..")
+            or not target.endswith((".yaml", ".yml"))
+        ):
+            raise ToolError("filename must be a bare .yaml filename with no path separators")
         try:
             await bps.async_add_blueprint(bp_obj, target, allow_override=True)
         except Exception as e:
@@ -133,6 +145,11 @@ async def ha_blueprint(
     if op == "delete":
         if not path:
             raise ToolError("op=delete requires 'path'")
+        # HA joins this straight onto the blueprint folder and unlinks with no
+        # sanitization, so an absolute or ../-laden path would escape. Require a
+        # bare relative .yaml path under blueprints/<domain>/.
+        if os.path.isabs(path) or ".." in path.split("/") or not path.endswith((".yaml", ".yml")):
+            raise ToolError("path must be a relative .yaml path with no '..' segments")
         try:
             await bps.async_remove_blueprint(path)
         except Exception as e:

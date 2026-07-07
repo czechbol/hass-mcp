@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
+from ..identity import user_context
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
@@ -47,7 +48,9 @@ _OPS = ("list", "get", "create", "update", "delete", "reload")
     ),
     read_only=False,
     idempotent=False,
-    requires_write=True,
+    requires_admin=True,
+    write_ops=["create", "update", "reload"],
+    destructive_ops=["delete"],
 )
 async def ha_yaml_config(
     hass: HomeAssistant,
@@ -167,7 +170,7 @@ async def _save(hass: HomeAssistant, path: str, data: Any, structure: str) -> No
 
 async def _reload(hass: HomeAssistant, domain: str) -> None:
     try:
-        await hass.services.async_call(domain, "reload", {}, blocking=True)
+        await hass.services.async_call(domain, "reload", {}, blocking=True, context=user_context())
     except Exception as e:
         raise ToolError(f"{domain}.reload failed: {e}") from e
 

@@ -59,7 +59,8 @@ _OPS = (
         required=["op"],
     ),
     read_only=False,
-    requires_write=True,
+    write_ops=["generate"],
+    destructive_ops=["delete", "restore"],
 )
 async def ha_backup(
     hass: HomeAssistant,

@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
+from ..identity import user_context
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 from ..ws import WsCallError, ws_call
@@ -57,6 +58,11 @@ _OPS = (
         required=["op"],
     ),
     read_only=False,
+    requires_admin=True,
+    destructive_ops=["clear_system_log"],
+    # Reads that expose secrets (logs) or precise location/URLs (core config)
+    # are admin-only; check_config / get_health stay open.
+    admin_ops=["read_error_log", "read_system_log", "get_config"],
 )
 async def ha_system(
     hass: HomeAssistant,
@@ -93,7 +99,9 @@ async def ha_system(
 
     if op == "clear_system_log":
         try:
-            await hass.services.async_call("system_log", "clear", {}, blocking=True)
+            await hass.services.async_call(
+                "system_log", "clear", {}, blocking=True, context=user_context()
+            )
         except Exception as e:
             raise ToolError(f"clear failed: {e}") from e
         return {"cleared": True}
@@ -131,6 +139,7 @@ async def _get_health(hass: HomeAssistant) -> dict[str, Any]:
 
 
 async def _read_error_log(hass: HomeAssistant, lines: int) -> dict[str, Any]:
+    lines = max(1, min(lines, 5000))  # clamp (schema max isn't enforced server-side)
     path = hass.config.path("home-assistant.log")
     if not os.path.exists(path):
         return {"path": path, "lines": [], "note": "log file does not exist"}

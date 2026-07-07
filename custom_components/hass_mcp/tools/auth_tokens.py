@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
+from ..identity import effective_user
 from ..protocol import ToolError
 from ..registry import schema, tool
 
@@ -43,8 +44,9 @@ _OPS = ("current_user", "list_tokens", "create_long_lived_token", "delete_refres
     ),
     read_only=False,
     destructive=True,
-    requires_write=True,
-    requires_destructive=True,
+    # Minting a long-lived token creates a persistent credential that outlives
+    # the caller's own token — treat it as destructive (off by default).
+    destructive_ops=["create_long_lived_token", "delete_refresh_token"],
 )
 async def ha_auth(
     hass: HomeAssistant,
@@ -57,14 +59,11 @@ async def ha_auth(
     if op not in _OPS:
         raise ToolError(f"unknown op '{op}'")
 
-    # Get the user from the MCP integration's runtime data — falls back to
-    # the first admin user if not available.
-    user = None
-    users = await hass.auth.async_get_users()
-    admins = [u for u in users if u.is_active and u.is_admin]
-    if not admins:
-        raise ToolError("no admin user available")
-    user = admins[0]
+    # Act on the user who owns the calling token — never a substituted admin.
+    # Every op here reads or mutates that user's own tokens.
+    user = effective_user()
+    if user is None:
+        raise ToolError("ha_auth requires an authenticated user; none in context")
 
     if op == "current_user":
         return {

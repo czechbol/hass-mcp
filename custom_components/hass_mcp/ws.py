@@ -15,6 +15,8 @@ import voluptuous as vol
 from homeassistant.components.websocket_api import const as ws_const
 from homeassistant.core import HomeAssistant, callback
 
+from .identity import effective_user
+
 
 class _CaptureConnection:
     """Stub ActiveConnection that captures send_result / send_error / send_message."""
@@ -98,17 +100,15 @@ async def ws_call(
         except vol.Invalid as e:
             raise WsCallError(f"invalid arguments for '{command}': {e}") from e
 
+    # Run the command as the user who owns the request's token.
+    # HA's own permission machinery (@require_admin, per-user policy) then
+    # enforces the caller's actual rights. No admin substitution: fail closed
+    # if there is no effective user rather than silently elevating.
+    user = effective_user()
+    if user is None:
+        raise WsCallError(f"WS command '{command}' requires an authenticated user; none in context")
     conn = _CaptureConnection(hass)
-    # Populate an admin user so handlers decorated with @require_admin pass.
-    # We trust the caller — the MCP integration already gated access via HA's
-    # bearer-auth on the HomeAssistantView.
-    try:
-        users = await hass.auth.async_get_users()
-        admins = [u for u in users if u.is_active and u.is_admin]
-        if admins:
-            conn.user = admins[0]
-    except Exception:  # noqa: BLE001
-        pass
+    conn.user = user
 
     try:
         result = handler(hass, conn, msg)

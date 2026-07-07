@@ -11,6 +11,9 @@ from homeassistant.helpers import template as template_helper
 from ..protocol import ToolError
 from ..registry import schema, tool
 
+# Max seconds a render may run before it's rejected (guards the event loop).
+_RENDER_TIMEOUT = 3.0
+
 
 @tool(
     name="ha_render_template",
@@ -44,6 +47,10 @@ async def ha_render_template(
 ) -> dict[str, Any]:
     tpl = template_helper.Template(template, hass)
     try:
+        # Best-effort guard against a runaway template (HA's own safety check,
+        # not a hard bound). async_render_will_timeout is a coroutine — await it.
+        if await tpl.async_render_will_timeout(_RENDER_TIMEOUT, variables=variables):
+            raise ToolError(f"template render exceeded {_RENDER_TIMEOUT:g}s; simplify the template")
         rendered = tpl.async_render(variables=variables, limited=limited)
     except TemplateError as e:
         raise ToolError(f"template error: {e}") from e

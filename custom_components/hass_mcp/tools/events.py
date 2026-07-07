@@ -40,6 +40,7 @@ async def ha_list_events(hass: HomeAssistant, limit: int = 100, offset: int = 0)
     idempotent=False,
     requires_write=True,
     requires_fire_event=True,
+    requires_admin=True,
 )
 async def ha_fire_event(
     hass: HomeAssistant,

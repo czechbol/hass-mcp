@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.core import Context, HomeAssistant
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent as intent_helper
 
+from ..identity import user_context
 from ..protocol import ToolError
 from ..registry import schema, tool
 
@@ -64,7 +65,7 @@ async def ha_assist(
             hass,
             text=text,
             conversation_id=conversation_id,
-            context=Context(),
+            context=user_context(),
             language=language,
             agent_id=agent_id,
         )
@@ -83,6 +84,7 @@ async def ha_assist(
                 name,
                 slots=wrapped,
                 text_input=None,
+                context=user_context(),
                 language=language,
             )
         except intent_helper.IntentError as e:

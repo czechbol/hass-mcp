@@ -218,9 +218,28 @@ async def test_update_resource(hass: MagicMock, capture: list) -> None:
 
 
 async def test_delete_dashboard_gated_off(hass: MagicMock, capture: list) -> None:
-    with pytest.raises(ToolError) as exc:
-        await ha_lovelace(hass, op="delete_dashboard", dashboard_id="d1")
-    assert "allow_destructive" in str(exc.value)
+    # Destructive gating is enforced centrally (protocol._tools_call) from the
+    # tool's declared destructive_ops — not inside the handler. With
+    # allow_destructive off the op is rejected before the handler runs, so
+    # ws_call is never reached.
+    from custom_components.hass_mcp.protocol import dispatch
+    from custom_components.hass_mcp.tools import lovelace  # noqa: F401  (register)
+
+    resp = await dispatch(
+        hass,
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "ha_lovelace",
+                "arguments": {"op": "delete_dashboard", "dashboard_id": "d1"},
+            },
+        },
+        object(),  # user present → this exercises the op-gate, not fail-closed
+    )
+    assert resp["result"]["isError"] is True
+    assert "destructive" in resp["result"]["content"][0]["text"]
     assert capture == []
 
 
@@ -279,10 +298,14 @@ def test_registered_with_write_gate() -> None:
 
     # Ensure import has registered the tool.
     from custom_components.hass_mcp.tools import lovelace  # noqa: F401
+    from custom_components.hass_mcp.tools.lovelace import _DESTRUCTIVE_OPS, _WRITE_OPS
 
     t = TOOLS["ha_lovelace"]
-    assert t.requires_write is True
-    assert t.requires_destructive is False  # gate is op-level inline
+    # Gating is now per-op (write_ops / destructive_ops), not whole-tool.
+    assert t.requires_write is False
+    assert t.requires_destructive is False
+    assert t.write_ops == frozenset(_WRITE_OPS)
+    assert t.destructive_ops == frozenset(_DESTRUCTIVE_OPS)
     enum = t.input_schema["properties"]["op"]["enum"]
     for op in (
         "save_config",
