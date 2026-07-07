@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from ..identity import user_context
 from ..protocol import ToolError
 from ..registry import schema, tool
 
@@ -96,7 +97,9 @@ async def ha_recorder(
         data: dict[str, Any] = {"repack": repack, "apply_filter": apply_filter}
         if keep_days is not None:
             data["keep_days"] = keep_days
-        await hass.services.async_call("recorder", "purge", data, blocking=True)
+        await hass.services.async_call(
+            "recorder", "purge", data, blocking=True, context=user_context()
+        )
         return {"queued": True, **data}
 
     if op == "purge_entities":
@@ -111,7 +114,9 @@ async def ha_recorder(
             data["domains"] = domains
         if entity_globs:
             data["entity_globs"] = entity_globs
-        await hass.services.async_call("recorder", "purge_entities", data, blocking=True)
+        await hass.services.async_call(
+            "recorder", "purge_entities", data, blocking=True, context=user_context()
+        )
         return {"queued": True, **data}
 
     raise ToolError(f"unsupported op '{op}'")

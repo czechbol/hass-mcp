@@ -177,6 +177,7 @@ async def ha_get_state(hass: HomeAssistant, entity_id: str) -> dict[str, Any]:
     destructive=False,
     idempotent=False,
     requires_write=True,
+    requires_admin=True,
 )
 async def ha_set_state(
     hass: HomeAssistant,
@@ -205,6 +206,7 @@ async def ha_set_state(
     idempotent=True,
     requires_write=True,
     requires_destructive=True,
+    requires_admin=True,
 )
 async def ha_delete_state(hass: HomeAssistant, entity_id: str) -> dict[str, Any]:
     removed = hass.states.async_remove(entity_id)

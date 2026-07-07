@@ -139,6 +139,7 @@ def _issue_to_dict(i) -> dict[str, Any]:
         required=["kind", "op"],
     ),
     read_only=False,
+    requires_admin=True,
     write_ops=["create", "update"],
     destructive_ops=["delete"],
 )

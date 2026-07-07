@@ -65,6 +65,7 @@ def _flow_result_to_dict(r: dict[str, Any]) -> dict[str, Any]:
     ),
     read_only=False,
     idempotent=False,
+    requires_admin=True,
     write_ops=["init", "configure", "abort"],
 )
 async def ha_config_flow(

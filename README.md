@@ -154,15 +154,19 @@ destructive while `op=get` is a read):
 | Option              | Default | Enables                                                                                                                                                                                     |
 | ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `allow_write`       | ✅ on   | write ops — `ha_call_service`, `ha_set_state`, create/update/reload across `ha_registry` / `ha_config_entries` / `ha_helper` / `ha_yaml_config` / `ha_blueprint` / `ha_energy`, `ha_config_flow`, `ha_assist`, `ha_hacs` |
-| `allow_destructive` | ❌ off  | destructive ops — `ha_delete_state`, and delete/remove/purge/revoke/restore/clear across `ha_registry`, `ha_config_entries`, `ha_helper`, `ha_backup`, `ha_yaml_config`, `ha_blueprint`, `ha_statistics`, `ha_recorder`, `ha_auth`, `ha_lovelace` |
+| `allow_destructive` | ❌ off  | destructive ops — `ha_delete_state`, and delete/remove/purge/revoke/restore/clear across `ha_registry`, `ha_config_entries`, `ha_helper`, `ha_backup`, `ha_yaml_config`, `ha_blueprint`, `ha_statistics`, `ha_recorder`, `ha_auth`, `ha_lovelace`, `ha_system` (clear_system_log) |
 | `allow_fire_event`  | ❌ off  | `ha_fire_event`                                                                                                                                                                             |
 
 Tool classes that are disabled are omitted from `tools/list` entirely.
 
 **2. Effective user** — every tool call executes as the Home Assistant user who
 owns the bearer token, and HA's own permission machinery enforces that user's
-rights. A non-admin token cannot perform admin-only actions. Mutating calls
-**fail closed** if the request carries no authenticated user.
+rights. Mutating calls **fail closed** if the request carries no authenticated
+user. Operations that HA treats as admin-only and that this integration
+performs via direct APIs — mutations on `ha_registry`, `ha_config_entries`,
+`ha_config_flow`, `ha_energy`, `ha_statistics`, `ha_set_state`,
+`ha_delete_state` — additionally require the token's user to be an
+administrator (their read ops do not).
 
 ## Security notes
 

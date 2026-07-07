@@ -205,6 +205,14 @@ async def _tools_call(
             f"authenticated user is present; refusing"
         )
 
+    # Layer 2b — direct-API mutations that HA treats as admin-only. The token
+    # user must be an admin (user is guaranteed present by the check above).
+    if mutating and tool_def.requires_admin and not getattr(user, "is_admin", False):
+        return _tool_error(
+            f"tool '{name}' performs an administrator-only operation; the user "
+            f"that owns your token is not an administrator"
+        )
+
     write_kind = op_class or (
         "destructive"
         if tool_def.requires_destructive

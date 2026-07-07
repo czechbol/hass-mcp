@@ -84,6 +84,7 @@ async def ha_assist(
                 name,
                 slots=wrapped,
                 text_input=None,
+                context=user_context(),
                 language=language,
             )
         except intent_helper.IntentError as e:

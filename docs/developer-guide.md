@@ -171,6 +171,11 @@ _OPS = ("list", "get", "create", "update", "delete")
     # Ops not listed here are treated as reads.
     write_ops=["create", "update"],
     destructive_ops=["delete"],
+    # If the tool mutates via a direct HA API with no per-user check of its own
+    # (registry, config entries/flow, state machine, …) and HA treats the op as
+    # admin-only, add requires_admin=True — the token user must then be an admin
+    # for any mutating op (reads stay open).
+    # requires_admin=True,
     # For a single-purpose tool, use a whole-tool flag instead (these also
     # drive tools/list filtering):
     # requires_write=True / requires_destructive=True / requires_fire_event=True

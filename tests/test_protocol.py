@@ -297,3 +297,119 @@ async def test_mutating_with_user_proceeds(
     resp = await _call_meta(hass, "create", user=object())
     assert resp["result"]["isError"] is False
     assert resp["result"]["structuredContent"] == {"ran": True}
+
+
+def test_real_tool_op_classifications() -> None:
+    # Guards against future op-gate drift on a few security-sensitive tools.
+    from custom_components.hass_mcp import tools  # noqa: F401  (register all)
+    from custom_components.hass_mcp.registry import TOOLS
+
+    assert TOOLS["ha_system"].destructive_ops == frozenset({"clear_system_log"})
+    assert TOOLS["ha_system"].write_ops == frozenset()
+    assert TOOLS["ha_statistics"].destructive_ops == frozenset({"clear"})
+    assert TOOLS["ha_auth"].write_ops == frozenset({"create_long_lived_token"})
+    assert TOOLS["ha_auth"].destructive_ops == frozenset({"delete_refresh_token"})
+
+
+def test_direct_api_tools_require_admin() -> None:
+    from custom_components.hass_mcp import tools  # noqa: F401
+    from custom_components.hass_mcp.registry import TOOLS
+
+    for name in (
+        "ha_set_state",
+        "ha_delete_state",
+        "ha_registry",
+        "ha_config_entries",
+        "ha_config_flow",
+        "ha_energy",
+        "ha_statistics",
+    ):
+        assert TOOLS[name].requires_admin is True, name
+    # ha_auth acts on the caller's own account — must NOT require admin.
+    assert TOOLS["ha_auth"].requires_admin is False
+
+
+def _admin_tool(handler) -> dict:
+    return {
+        "ut_admin": ToolDef(
+            name="ut_admin",
+            description="d",
+            input_schema=schema(properties={"op": {"type": "string"}}),
+            handler=handler,
+            write_ops=frozenset({"create"}),
+            requires_admin=True,
+        )
+    }
+
+
+class _NonAdmin:
+    is_admin = False
+
+
+class _Admin:
+    is_admin = True
+
+
+@pytest.mark.asyncio
+async def test_requires_admin_blocks_non_admin(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _admin_tool(handler))
+    resp = await dispatch(
+        hass,
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "ut_admin", "arguments": {"op": "create"}},
+        },
+        _NonAdmin(),
+    )
+    assert resp["result"]["isError"] is True
+    assert "administrator" in resp["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_requires_admin_allows_admin(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _admin_tool(handler))
+    resp = await dispatch(
+        hass,
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "ut_admin", "arguments": {"op": "create"}},
+        },
+        _Admin(),
+    )
+    assert resp["result"]["isError"] is False
+
+
+@pytest.mark.asyncio
+async def test_requires_admin_read_op_allows_non_admin(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _admin_tool(handler))
+    # 'list' is a read (not in write_ops) → admin gate doesn't apply.
+    resp = await dispatch(
+        hass,
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "ut_admin", "arguments": {"op": "list"}},
+        },
+        _NonAdmin(),
+    )
+    assert resp["result"]["isError"] is False

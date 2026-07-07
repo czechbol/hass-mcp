@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -126,6 +127,14 @@ async def ha_blueprint(
                 raise ToolError(f"yaml parse failed: {e}") from e
 
         target = filename or default_fname
+        # Guard against path traversal — the target must be a bare .yaml
+        # filename written under blueprints/<domain>/, never an escape.
+        if (
+            os.path.basename(target) != target
+            or target in ("", ".", "..")
+            or not target.endswith((".yaml", ".yml"))
+        ):
+            raise ToolError("filename must be a bare .yaml filename with no path separators")
         try:
             await bps.async_add_blueprint(bp_obj, target, allow_override=True)
         except Exception as e:

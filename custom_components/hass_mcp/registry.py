@@ -37,6 +37,12 @@ class ToolDef:
     # listed here are treated as reads.
     write_ops: frozenset[str] = field(default_factory=frozenset)
     destructive_ops: frozenset[str] = field(default_factory=frozenset)
+    # When True, any *mutating* action of this tool additionally requires the
+    # effective user to be an administrator. Used for tools that mutate via
+    # direct HA APIs (registry, config entries/flow, state machine, energy,
+    # statistics) which have no per-user permission check of their own — these
+    # operations are admin-only in Home Assistant. Reads are unaffected.
+    requires_admin: bool = False
 
     def to_listing(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -67,6 +73,7 @@ def tool(
     requires_write: bool = False,
     requires_destructive: bool = False,
     requires_fire_event: bool = False,
+    requires_admin: bool = False,
     write_ops: list[str] | None = None,
     destructive_ops: list[str] | None = None,
 ) -> Callable[[Handler], Handler]:
@@ -99,6 +106,7 @@ def tool(
             requires_write=requires_write,
             requires_destructive=requires_destructive,
             requires_fire_event=requires_fire_event,
+            requires_admin=requires_admin,
             write_ops=frozenset(write_ops or ()),
             destructive_ops=frozenset(destructive_ops or ()),
         )

@@ -26,7 +26,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
   (`admins[0]`), so any valid bearer token gained admin rights. Calls now run
   as the Home Assistant user who owns the token, and HA's own permission
   machinery enforces that user's rights. Mutating operations **fail closed**
-  when no authenticated user is present.
+  when no authenticated user is present. `ha_auth` now acts on the calling
+  token's own user (it too previously used `admins[0]`, letting any token mint
+  an admin long-lived token).
+- **Admin-only operations now require an admin token.** Tools that mutate via
+  direct HA APIs with no per-user check of their own — `ha_registry`,
+  `ha_config_entries`, `ha_config_flow`, `ha_energy`, `ha_statistics`,
+  `ha_set_state`, `ha_delete_state` — now require the token's user to be an
+  administrator (matching Home Assistant's own policy for those operations).
+  Their read ops remain available to any token.
+- `ha_blueprint op=import` now rejects `filename` values containing path
+  separators or non-`.yaml` extensions, closing a path-traversal vector.
 - **Destructive/write ops are now gated per `op`.** Several meta-tools
   (`ha_registry`, `ha_config_entries`, `ha_blueprint`, `ha_energy`,
   `ha_statistics`, `ha_helper`, `ha_backup`, `ha_yaml_config`) previously

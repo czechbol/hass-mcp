@@ -26,11 +26,15 @@ class RateLimiter:
         self._window = window_seconds
         self._buckets: dict[str, _Bucket] = {}
         self._lock = Lock()
+        self._checks = 0
 
     def check(self, key: str) -> tuple[bool, float]:
         """Record one call against ``key``. Returns (allowed, retry_after_seconds)."""
         now = time.monotonic()
         with self._lock:
+            self._checks += 1
+            if self._checks % 1024 == 0:
+                self._evict_idle(now)
             bucket = self._buckets.setdefault(key, _Bucket())
             cutoff = now - self._window
             while bucket.timestamps and bucket.timestamps[0] < cutoff:
@@ -40,3 +44,15 @@ class RateLimiter:
                 return False, max(0.0, retry)
             bucket.timestamps.append(now)
             return True, 0.0
+
+    def _evict_idle(self, now: float) -> None:
+        """Drop buckets whose entire window has expired (bounds memory).
+
+        Callers keyed by transient tokens would otherwise accumulate forever.
+        """
+        cutoff = now - self._window
+        stale = [
+            k for k, b in self._buckets.items() if not b.timestamps or b.timestamps[-1] < cutoff
+        ]
+        for k in stale:
+            del self._buckets[k]

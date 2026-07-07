@@ -55,6 +55,7 @@ _OPS = {"list_ids", "period", "metadata", "clear"}
         required=["op"],
     ),
     read_only=False,
+    requires_admin=True,
     destructive_ops=["clear"],
 )
 async def ha_statistics(

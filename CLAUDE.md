@@ -88,7 +88,9 @@ Two layers, both enforced in `protocol.py` `_tools_call`:
 2. **Effective user** — the request's HA user (`request["hass_user"]`) is put
    on a contextvar in `identity.py`; `ws_call` sets it as `conn.user` (no more
    `admins[0]`) and service calls pass `Context(user_id=…)`. Mutating ops fail
-   closed with no user.
+   closed with no user. Tools that mutate via direct HA APIs (no per-user check
+   of their own) set `requires_admin=True`, enforced centrally — the token user
+   must be an admin for their mutating ops.
 
 Plus `rate_limit_per_minute` (default 600).
 
