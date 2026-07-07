@@ -52,6 +52,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
   aiohttp view kept serving after unload and fell back to permissive option
   defaults (re-enabling writes); it now rejects requests until the entry is
   loaded again.
+- **Sensitive reads now require an admin token.** `ha_system op=read_error_log`
+  / `read_system_log` / `get_config` (logs may contain secrets; core config
+  exposes precise location), `ha_config_entries op=list/get`, and all
+  `ha_diagnostics` ops now require the token's user to be an administrator.
+  Core monitoring reads (states, history, statistics, registry inventory,
+  traces) remain available to any token.
+- `ha_render_template` now bounds execution with a render timeout, so a runaway
+  template can't block the event loop. The full (`limited=false`) engine
+  remains the default.
 - **Destructive/write ops are now gated per `op`.** Several meta-tools
   (`ha_registry`, `ha_config_entries`, `ha_blueprint`, `ha_energy`,
   `ha_statistics`, `ha_helper`, `ha_backup`, `ha_yaml_config`) previously

@@ -60,6 +60,9 @@ _OPS = (
     read_only=False,
     requires_admin=True,
     destructive_ops=["clear_system_log"],
+    # Reads that expose secrets (logs) or precise location/URLs (core config)
+    # are admin-only; check_config / get_health stay open.
+    admin_ops=["read_error_log", "read_system_log", "get_config"],
 )
 async def ha_system(
     hass: HomeAssistant,

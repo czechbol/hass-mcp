@@ -86,6 +86,8 @@ def _redact(d: Any) -> Any:
     requires_admin=True,
     write_ops=["reload", "unload", "setup", "update_options"],
     destructive_ops=["remove"],
+    # Config-entry reads expose integration hosts/usernames/structure — admin.
+    admin_ops=["list", "get"],
 )
 async def ha_config_entries(
     hass: HomeAssistant,

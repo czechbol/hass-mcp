@@ -418,3 +418,88 @@ async def test_requires_admin_read_op_allows_non_admin(
         _NonAdmin(),
     )
     assert resp["result"]["isError"] is False
+
+
+def _readadmin_tool(handler) -> dict:
+    return {
+        "ut_ra": ToolDef(
+            name="ut_ra",
+            description="d",
+            input_schema=schema(properties={"op": {"type": "string"}}),
+            handler=handler,
+            admin_ops=frozenset({"peek"}),
+        )
+    }
+
+
+async def _call_ra(hass, op, user):
+    return await dispatch(
+        hass,
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "ut_ra", "arguments": {"op": op}},
+        },
+        user,
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_read_op_blocks_non_admin(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _readadmin_tool(handler))
+    resp = await _call_ra(hass, "peek", _NonAdmin())  # admin_ops read
+    assert resp["result"]["isError"] is True
+    assert "administrator" in resp["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_admin_read_op_allows_admin(hass: MagicMock, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _readadmin_tool(handler))
+    resp = await _call_ra(hass, "peek", _Admin())
+    assert resp["result"]["isError"] is False
+
+
+@pytest.mark.asyncio
+async def test_admin_read_op_fails_closed_without_user(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _readadmin_tool(handler))
+    resp = await _call_ra(hass, "peek", None)
+    assert resp["result"]["isError"] is True
+    assert "authenticated user" in resp["result"]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_non_admin_read_op_outside_admin_ops_allowed(
+    hass: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def handler(hass, **kw):
+        return {"ran": True}
+
+    monkeypatch.setattr(protocol_mod, "TOOLS", _readadmin_tool(handler))
+    # 'other' isn't in admin_ops → ordinary read, allowed for a non-admin.
+    resp = await _call_ra(hass, "other", _NonAdmin())
+    assert resp["result"]["isError"] is False
+
+
+def test_sensitive_reads_are_admin_gated() -> None:
+    from custom_components.hass_mcp import tools  # noqa: F401
+    from custom_components.hass_mcp.registry import TOOLS
+
+    assert TOOLS["ha_system"].admin_ops == frozenset(
+        {"read_error_log", "read_system_log", "get_config"}
+    )
+    assert TOOLS["ha_config_entries"].admin_ops == frozenset({"list", "get"})
+    assert TOOLS["ha_diagnostics"].admin_ops == frozenset({"list", "config_entry", "device"})

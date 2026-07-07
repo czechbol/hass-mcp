@@ -43,6 +43,10 @@ class ToolDef:
     # statistics) which have no per-user permission check of their own — these
     # operations are admin-only in Home Assistant. Reads are unaffected.
     requires_admin: bool = False
+    # Ops that require an admin effective user regardless of read/write. Used to
+    # gate specific *read* ops that expose secrets/credentials/precise location
+    # (e.g. logs, diagnostics, core config). Enforced centrally.
+    admin_ops: frozenset[str] = field(default_factory=frozenset)
 
     def to_listing(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -76,6 +80,7 @@ def tool(
     requires_admin: bool = False,
     write_ops: list[str] | None = None,
     destructive_ops: list[str] | None = None,
+    admin_ops: list[str] | None = None,
 ) -> Callable[[Handler], Handler]:
     """Register an async tool handler.
 
@@ -109,6 +114,7 @@ def tool(
             requires_admin=requires_admin,
             write_ops=frozenset(write_ops or ()),
             destructive_ops=frozenset(destructive_ops or ()),
+            admin_ops=frozenset(admin_ops or ()),
         )
         return func
 

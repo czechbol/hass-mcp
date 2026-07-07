@@ -199,15 +199,20 @@ async def _tools_call(
         or tool_def.requires_fire_event
         or op_class
     )
-    if mutating and user is None:
+    # Admin is required for (a) mutating ops on direct-API tools flagged
+    # requires_admin, and (b) specific admin-only read ops (logs, diagnostics,
+    # core config) listed in admin_ops. Both need a present, admin user.
+    admin_required = (mutating and tool_def.requires_admin) or (
+        isinstance(op, str) and op in tool_def.admin_ops
+    )
+
+    if (mutating or admin_required) and user is None:
         return _tool_error(
-            f"tool '{name}' mutates state and runs as your token's user, but no "
-            f"authenticated user is present; refusing"
+            f"tool '{name}' runs as your token's user, but no authenticated user "
+            f"is present; refusing"
         )
 
-    # Layer 2b — direct-API mutations that HA treats as admin-only. The token
-    # user must be an admin (user is guaranteed present by the check above).
-    if mutating and tool_def.requires_admin and not getattr(user, "is_admin", False):
+    if admin_required and not getattr(user, "is_admin", False):
         return _tool_error(
             f"tool '{name}' performs an administrator-only operation; the user "
             f"that owns your token is not an administrator"

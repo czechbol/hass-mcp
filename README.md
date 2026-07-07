@@ -174,6 +174,11 @@ administrator (their read ops do not).
   admin-level control; to limit a client, mint its token under an
   appropriately-privileged (e.g. non-admin) HA user. Rotate tokens when
   revoking access.
+- A **write-enabled** token can call any Home Assistant service via
+  `ha_call_service` — this matches HA's own behavior (non-admins can call
+  services). Operations HA treats as admin-only (registry/config-entry/flow
+  mutations, state writes, energy/statistics, and sensitive reads such as
+  logs, diagnostics, and core config) additionally require an **admin** token.
 - Only expose `/api/hass_mcp` over HTTPS in production.
 - If you front HA with a reverse proxy, ensure the `Authorization` header is
   forwarded.
