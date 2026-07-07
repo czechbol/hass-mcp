@@ -59,7 +59,9 @@ jobs:
       - name: Extract changelog section for this tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          awk -v ver="## [$VERSION]" '
+          # A pre-release tag (v2.1.0-beta.1) shows the base version's notes.
+          BASE="${VERSION%%-*}"
+          awk -v ver="## [$BASE]" '
             /^## \[/ { if (found) exit; if (index($0, ver) == 1) { found = 1; next } }
             found { print }
           ' CHANGELOG.md > release-notes.md
@@ -68,7 +70,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Semver pre-release tags (containing a hyphen) publish as a GitHub
+          # pre-release and never claim "latest".
+          flags=()
+          case "$GITHUB_REF_NAME" in
+            *-*) flags=(--prerelease --latest=false) ;;
+          esac
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes-file release-notes.md \
-            --verify-tag
+            --verify-tag "${flags[@]}"
