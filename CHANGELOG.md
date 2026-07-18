@@ -17,6 +17,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ### Security
 
+## [2.2.0] - 2026-07-18
+
+### Security
+
 - Read tools now honor the token owner's per-entity read policy (HA
   `POLICY_READ`), matching what the write path already enforced. A restricted
   non-admin token no longer sees entities its HA policy hides via
@@ -127,7 +131,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/czechbol/hass-mcp/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/czechbol/hass-mcp/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/czechbol/hass-mcp/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/czechbol/hass-mcp/releases/tag/v1.1.1
