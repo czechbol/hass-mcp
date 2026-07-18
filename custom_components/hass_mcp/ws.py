@@ -9,6 +9,7 @@ connection, capturing the response.
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -16,6 +17,8 @@ from homeassistant.components.websocket_api import const as ws_const
 from homeassistant.core import HomeAssistant, callback
 
 from .identity import effective_user
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class _CaptureConnection:
@@ -113,7 +116,12 @@ async def ws_call(
     try:
         result = handler(hass, conn, msg)
     except Exception as e:
-        raise WsCallError(f"{type(e).__name__}: {e}") from e
+        # Don't surface the raw handler exception (paths/tracebacks/library
+        # internals) to the client; log it and raise a generic error. HA's own
+        # structured send_error responses (below) stay verbatim — they're
+        # client-facing error codes by design.
+        _LOGGER.warning("hass_mcp: WS command '%s' raised", command, exc_info=e)
+        raise WsCallError(f"WS command '{command}' failed; see Home Assistant logs") from e
     if asyncio.iscoroutine(result):
         await result
 

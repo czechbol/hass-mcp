@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from ..identity import can_read_entity
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import schema, tool
 
 
@@ -43,7 +43,7 @@ async def ha_camera_snapshot(
     try:
         image = await camera.async_get_image(hass, entity_id, timeout=timeout)
     except Exception as e:
-        raise ToolError(f"failed to capture {entity_id}: {e}") from e
+        raise internal_error(f"failed to capture {entity_id}", e) from e
 
     return {
         "entity_id": entity_id,

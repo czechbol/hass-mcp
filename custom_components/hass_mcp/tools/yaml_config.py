@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
 from ..identity import user_context
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 # kind → (filename, structure, reload-service-domain)
@@ -51,6 +51,10 @@ _OPS = ("list", "get", "create", "update", "delete", "reload")
     requires_admin=True,
     write_ops=["create", "update", "reload"],
     destructive_ops=["delete"],
+    # list/get return full automation/script/scene logic (and any secrets
+    # templated into service_data) — admin-only, matching HA's config panel and
+    # ha_trace's gating of the same data class.
+    admin_ops=["list", "get"],
 )
 async def ha_yaml_config(
     hass: HomeAssistant,
@@ -172,7 +176,7 @@ async def _reload(hass: HomeAssistant, domain: str) -> None:
     try:
         await hass.services.async_call(domain, "reload", {}, blocking=True, context=user_context())
     except Exception as e:
-        raise ToolError(f"{domain}.reload failed: {e}") from e
+        raise internal_error(f"{domain}.reload failed", e) from e
 
 
 def _to_list(data: Any, structure: str) -> list[dict[str, Any]]:

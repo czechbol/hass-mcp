@@ -24,6 +24,7 @@ from homeassistant.helpers import (
     label_registry as lr,
 )
 
+from ..identity import can_read_all_entities, can_read_entity
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
@@ -172,14 +173,21 @@ async def ha_registry(
 async def _entity_ops(hass, op, id, data, limit, offset):
     reg = er.async_get(hass)
     if op == "list":
-        items = [_entity_to_dict(e) for e in reg.entities.values()]
+        entries = reg.entities.values()
+        # Honor the token owner's per-entity read policy (admins/owner see all),
+        # matching ha_list_states — the registry is entity data, not inventory.
+        if not can_read_all_entities():
+            entries = [e for e in entries if can_read_entity(e.entity_id)]
+        items = [_entity_to_dict(e) for e in entries]
         return paginate(items, limit, offset)
     if op == "get":
         if not id:
             raise ToolError("entity get requires id (entity_id)")
         e = reg.async_get(id)
-        if e is None:
-            raise ToolError(f"entity '{id}' not in registry")
+        # Mask entities the token owner may not read as "not found" — no oracle
+        # for existence vs. permission (mirrors ha_get_state).
+        if e is None or not can_read_entity(id):
+            raise ToolError(f"entity '{id}' not found")
         return _entity_to_dict(e)
     if op == "update":
         if not id:

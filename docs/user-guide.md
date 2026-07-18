@@ -195,6 +195,10 @@ The response includes the derived `entity_id` (`automation.sunset_lights`
 in this case). Run `ha_validate_config` first to catch trigger / condition /
 action errors before writing.
 
+`list`/`get` are admin-only — they return full automation/script/scene logic
+(and any secrets templated into the config), the same data class `ha_trace`
+gates. A non-admin token is refused.
+
 ### `ha_validate_config`
 
 Validate triggers, conditions, actions against HA's schemas without

@@ -101,11 +101,13 @@ async def _dispatch_one(hass: HomeAssistant, msg: Any, user: Any = None) -> dict
         if is_notification:
             return None
         return _err(req_id, e.code, e.message, e.data)
-    except Exception as e:
+    except Exception:
         _LOGGER.exception("Unhandled error in MCP method %s", method)
         if is_notification:
             return None
-        return _err(req_id, _INTERNAL_ERROR, f"{type(e).__name__}: {e}")
+        # Don't leak internal exception detail to the client; the full
+        # traceback is in the HA log.
+        return _err(req_id, _INTERNAL_ERROR, "internal error; see Home Assistant logs")
 
     if is_notification:
         return None
@@ -235,9 +237,11 @@ async def _tools_call(
     except TypeError as e:
         # Bad argument shape after JSON Schema (we don't enforce schema strictly here).
         return _tool_error(f"invalid arguments: {e}")
-    except Exception as e:
+    except Exception:
         _LOGGER.exception("Tool %s failed", name)
-        return _tool_error(f"{type(e).__name__}: {e}")
+        # Don't leak internal exception detail to the client; the full
+        # traceback is in the HA log.
+        return _tool_error(f"tool '{name}' failed with an internal error; see Home Assistant logs")
     finally:
         current_user.reset(token)
 
@@ -297,6 +301,19 @@ def _tool_error(message: str) -> dict[str, Any]:
     }
 
 
+def internal_error(context: str, exc: BaseException) -> _ToolError:
+    """Build a client-safe ToolError, logging the real cause server-side.
+
+    Use in tool handlers that catch a broad ``Exception`` around an HA/third-party
+    call: the raw message (file paths, tracebacks, library internals) stays in the
+    Home Assistant log and the caller gets only ``context`` — which must be a
+    static, non-sensitive description of the failed step (e.g. "flow init failed
+    for domain 'mqtt'"), never the exception text.
+    """
+    _LOGGER.warning("hass_mcp: %s", context, exc_info=exc)
+    return _ToolError(f"{context}; see Home Assistant logs")
+
+
 def _json_default(o: Any) -> Any:
     if isinstance(o, MappingProxyType):
         return dict(o)
@@ -325,3 +342,5 @@ def _safe_json(value: Any) -> str:
 
 # Re-export for tool modules.
 ToolError = _ToolError
+
+__all__ = ["ToolError", "dispatch", "internal_error"]

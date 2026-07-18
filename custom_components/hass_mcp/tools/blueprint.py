@@ -7,11 +7,23 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 _DOMAINS = ("automation", "script", "template")
 _OPS = ("list", "get", "import", "delete", "substitute")
+
+
+def _require_safe_path(path: str) -> None:
+    """Reject a blueprint path that would escape blueprints/<domain>/.
+
+    HA joins this straight onto the blueprint folder with pathlib and reads/
+    unlinks it with no sanitization, so an absolute or ``..``-laden path would
+    escape. Every op that takes a caller-supplied path (get/delete/substitute)
+    must run this first.
+    """
+    if os.path.isabs(path) or ".." in path.split("/") or not path.endswith((".yaml", ".yml")):
+        raise ToolError("path must be a relative .yaml path with no '..' segments")
 
 
 @tool(
@@ -80,7 +92,7 @@ async def ha_blueprint(
         try:
             all_bps = await bps.async_get_blueprints()
         except Exception as e:
-            raise ToolError(f"blueprint list failed: {e}") from e
+            raise internal_error("blueprint list failed", e) from e
         items = [
             {
                 "path": p,
@@ -95,10 +107,11 @@ async def ha_blueprint(
     if op == "get":
         if not path:
             raise ToolError("op=get requires 'path'")
+        _require_safe_path(path)
         try:
             bp = await bps.async_get_blueprint(path)
         except Exception as e:
-            raise ToolError(f"blueprint get failed: {e}") from e
+            raise internal_error("blueprint get failed", e) from e
         return {"path": path, "metadata": _bp_metadata(bp), "data": bp.data}
 
     if op == "import":
@@ -116,7 +129,7 @@ async def ha_blueprint(
                 bp_obj = imported.blueprint
                 default_fname = imported.suggested_filename + ".yaml"
             except Exception as e:
-                raise ToolError(f"fetch failed: {e}") from e
+                raise internal_error(f"fetch failed for url '{url}'", e) from e
         else:
             try:
                 import yaml as _yaml
@@ -139,31 +152,28 @@ async def ha_blueprint(
         try:
             await bps.async_add_blueprint(bp_obj, target, allow_override=True)
         except Exception as e:
-            raise ToolError(f"save failed: {e}") from e
+            raise internal_error(f"save failed for '{target}'", e) from e
         return {"saved_as": target, "metadata": _bp_metadata(bp_obj)}
 
     if op == "delete":
         if not path:
             raise ToolError("op=delete requires 'path'")
-        # HA joins this straight onto the blueprint folder and unlinks with no
-        # sanitization, so an absolute or ../-laden path would escape. Require a
-        # bare relative .yaml path under blueprints/<domain>/.
-        if os.path.isabs(path) or ".." in path.split("/") or not path.endswith((".yaml", ".yml")):
-            raise ToolError("path must be a relative .yaml path with no '..' segments")
+        _require_safe_path(path)
         try:
             await bps.async_remove_blueprint(path)
         except Exception as e:
-            raise ToolError(f"delete failed: {e}") from e
+            raise internal_error(f"delete failed for '{path}'", e) from e
         return {"path": path, "deleted": True}
 
     if op == "substitute":
         if not path:
             raise ToolError("op=substitute requires 'path'")
+        _require_safe_path(path)
         try:
             bp = await bps.async_get_blueprint(path)
             rendered = bp.async_substitute({"use_blueprint": {"path": path, "input": inputs or {}}})
         except Exception as e:
-            raise ToolError(f"substitute failed: {e}") from e
+            raise internal_error(f"substitute failed for '{path}'", e) from e
         return {"path": path, "rendered": rendered}
 
     raise ToolError(f"unsupported op '{op}'")

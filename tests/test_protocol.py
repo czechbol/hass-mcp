@@ -186,7 +186,24 @@ async def test_tools_call_handler_raises_is_isolated(
     # Tool failures surface as isError in result, not as JSON-RPC error envelope.
     assert "error" not in response
     assert response["result"]["isError"] is True
-    assert "boom" in response["result"]["content"][0]["text"]
+    # Internal exception detail must not leak to the client (it's logged instead).
+    text = response["result"]["content"][0]["text"]
+    assert "boom" not in text
+    assert "internal error" in text
+
+
+def test_internal_error_hides_detail_but_keeps_context() -> None:
+    # The shared helper used by tool handlers to wrap internal failures: the raw
+    # exception text stays server-side (logged), the client gets only the static
+    # context string plus a pointer to the logs.
+    err = protocol_mod.internal_error(
+        "flow init failed for domain 'mqtt'", RuntimeError("secret /path/leak")
+    )
+    assert isinstance(err, protocol_mod.ToolError)
+    text = str(err)
+    assert "secret /path/leak" not in text
+    assert "flow init failed for domain 'mqtt'" in text
+    assert "see Home Assistant logs" in text
 
 
 def _meta_tool(handler) -> dict:

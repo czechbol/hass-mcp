@@ -14,7 +14,15 @@ import pytest
 
 from custom_components.hass_mcp.identity import current_user
 from custom_components.hass_mcp.protocol import ToolError
-from custom_components.hass_mcp.tools import camera, describe, history, search, states, statistics
+from custom_components.hass_mcp.tools import (
+    camera,
+    describe,
+    history,
+    registries,
+    search,
+    states,
+    statistics,
+)
 from custom_components.hass_mcp.tools import template as tmpl
 
 
@@ -182,6 +190,13 @@ async def test_history_logbook_rejects_device_ids_for_restricted_user() -> None:
         await history.ha_history(MagicMock(), kind="logbook", device_ids=["dev-1"])
 
 
+@pytest.mark.asyncio
+async def test_history_logbook_rejects_unscoped_for_restricted_user() -> None:
+    # No entity_ids and no device_ids would read the whole logbook — refuse.
+    with _as(_User(allowed={"light.kitchen"})), pytest.raises(ToolError, match="entity_ids"):
+        await history.ha_history(MagicMock(), kind="logbook")
+
+
 # ---- ha_statistics --------------------------------------------------------
 
 
@@ -226,6 +241,62 @@ async def test_statistics_list_ids_filters_by_read_policy(monkeypatch: pytest.Mo
         out = await statistics.ha_statistics(MagicMock(), op="list_ids")
     # readable entity stat + external stat pass; hidden entity stat is dropped.
     assert {r["statistic_id"] for r in out["items"]} == {"sensor.power", "energy:grid"}
+
+
+# ---- ha_registry (entity) -------------------------------------------------
+
+
+class _RegEntry:
+    def __init__(self, entity_id: str) -> None:
+        self.entity_id = entity_id
+        self.unique_id = f"uid_{entity_id}"
+        self.platform = "demo"
+        self.config_entry_id = None
+        self.device_id = None
+        self.area_id = None
+        self.disabled_by = None
+        self.hidden_by = None
+        self.name = None
+        self.original_name = None
+        self.icon = None
+        self.labels = set()
+        self.categories = {}
+        self.options = {}
+
+
+def _entity_registry_with(monkeypatch: pytest.MonkeyPatch, *entity_ids: str) -> None:
+    entries = {eid: _RegEntry(eid) for eid in entity_ids}
+    reg = MagicMock()
+    reg.entities = entries
+    reg.async_get.side_effect = lambda eid: entries.get(eid)
+    monkeypatch.setattr(registries.er, "async_get", lambda hass: reg)
+
+
+@pytest.mark.asyncio
+async def test_registry_entity_list_filters_restricted_user(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _entity_registry_with(monkeypatch, "light.kitchen", "device_tracker.dad")
+    with _as(_User(allowed={"light.kitchen"})):
+        out = await registries.ha_registry(MagicMock(), kind="entity", op="list")
+    assert {i["entity_id"] for i in out["items"]} == {"light.kitchen"}
+
+
+@pytest.mark.asyncio
+async def test_registry_entity_list_admin_sees_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    _entity_registry_with(monkeypatch, "light.kitchen", "device_tracker.dad")
+    with _as(_User(allowed=set(), is_admin=True)):
+        out = await registries.ha_registry(MagicMock(), kind="entity", op="list")
+    assert {i["entity_id"] for i in out["items"]} == {"light.kitchen", "device_tracker.dad"}
+
+
+@pytest.mark.asyncio
+async def test_registry_entity_get_masks_unreadable_as_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _entity_registry_with(monkeypatch, "device_tracker.dad")
+    with _as(_User(allowed={"light.kitchen"})), pytest.raises(ToolError, match="not found"):
+        await registries.ha_registry(MagicMock(), kind="entity", op="get", id="device_tracker.dad")
 
 
 @pytest.mark.asyncio

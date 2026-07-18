@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from ..identity import user_context
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 from ..ws import WsCallError, ws_call
 
@@ -103,7 +103,7 @@ async def ha_system(
                 "system_log", "clear", {}, blocking=True, context=user_context()
             )
         except Exception as e:
-            raise ToolError(f"clear failed: {e}") from e
+            raise internal_error("system_log clear failed", e) from e
         return {"cleared": True}
 
     raise ToolError(f"unknown op '{op}'")

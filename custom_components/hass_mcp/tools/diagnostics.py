@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 _OPS = ("list", "config_entry", "device")
@@ -92,7 +92,7 @@ async def ha_diagnostics(
         try:
             result = await info.config_entry_diagnostics(hass, entry)
         except Exception as e:
-            raise ToolError(f"diagnostics failed: {type(e).__name__}: {e}") from e
+            raise internal_error(f"diagnostics failed for '{entry.domain}'", e) from e
         return {"domain": entry.domain, "entry_id": entry_id, "data": dict(result)}
 
     if op == "device":
@@ -106,7 +106,7 @@ async def ha_diagnostics(
         try:
             result = await info.device_diagnostics(hass, entry, device)
         except Exception as e:
-            raise ToolError(f"diagnostics failed: {type(e).__name__}: {e}") from e
+            raise internal_error(f"diagnostics failed for '{entry.domain}'", e) from e
         return {
             "domain": entry.domain,
             "entry_id": entry_id,

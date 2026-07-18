@@ -5,17 +5,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
-### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
+## [2.2.2] - 2026-07-19
 
 ### Security
+
+- `ha_blueprint` `get`/`substitute` now reject absolute or `..`-laden paths, the
+  same guard `delete` already applied. HA joins the caller's `path` straight onto
+  `blueprints/<domain>/` with pathlib, so an unsanitized read op could point at a
+  file outside the blueprint folder.
+- `ha_registry` `kind=entity` `list`/`get` now honor the token owner's per-entity
+  read policy: `list` drops entities the user can't read and `get` masks them as
+  "not found". A restricted non-admin token could previously enumerate the full
+  entity registry (and confirm existence of hidden entities via `get`), bypassing
+  the per-entity read policy enforced by the other read tools.
+- `ha_history` `kind=logbook` now requires a restricted non-admin token to scope
+  by `entity_ids`; an unscoped call previously returned the whole logbook,
+  bypassing the per-entity read policy.
+- `ha_yaml_config` `list`/`get` are now admin-only — they return full
+  automation/script/scene logic (and any inlined secrets), matching `ha_trace`.
+- Internal failures no longer leak raw exception detail to the client. Beyond
+  the central JSON-RPC/tool-call handlers, per-tool `except Exception` paths
+  (config flow, blueprint, diagnostics, energy, trace, camera, system, yaml
+  reload) and the `ws_call` bridge now log the cause server-side and return only
+  a generic, actionable message. Validation feedback and HA's own user-facing
+  errors are unaffected.
 
 ## [2.2.1] - 2026-07-18
 
@@ -142,7 +155,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/czechbol/hass-mcp/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/czechbol/hass-mcp/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/czechbol/hass-mcp/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/czechbol/hass-mcp/compare/v2.0.0...v2.1.0

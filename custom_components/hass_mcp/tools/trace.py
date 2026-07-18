@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 _OPS = ("list", "get", "contexts")
@@ -74,7 +74,7 @@ async def ha_trace(
         try:
             traces = await async_list_traces(hass, domain, key)
         except Exception as e:
-            raise ToolError(f"trace list failed: {e}") from e
+            raise internal_error("trace list failed", e) from e
         return paginate(list(traces), limit, offset)
 
     if op == "get":
@@ -92,7 +92,7 @@ async def ha_trace(
         try:
             contexts = await async_list_contexts(hass, key)
         except Exception as e:
-            raise ToolError(f"trace contexts failed: {e}") from e
+            raise internal_error("trace contexts failed", e) from e
         return {"contexts": contexts}
 
     raise ToolError(f"unsupported op '{op}'")

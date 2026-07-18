@@ -154,19 +154,22 @@ async def _logbook(
     except ImportError as e:
         raise ToolError(f"logbook integration not loaded: {e}") from e
 
-    # Honor the token owner's per-entity read policy. entity_ids are filtered;
-    # device_ids can't be filtered per-entity here, so a restricted user must
-    # scope by entity_id instead.
+    # Honor the token owner's per-entity read policy. An unscoped logbook reads
+    # every entity, so a restricted user must scope by entity_id; device_ids
+    # can't be filtered per-entity here and are rejected too.
     if not can_read_all_entities():
         if device_ids:
             raise ToolError(
                 "your user's entity permissions are restricted; scope the logbook "
                 "by entity_ids rather than device_ids"
             )
-        if entity_ids:
-            entity_ids = [e for e in entity_ids if can_read_entity(e)]
-            if not entity_ids:
-                return {"start": start_dt.isoformat(), "end": end_dt.isoformat(), "events": []}
+        if not entity_ids:
+            raise ToolError(
+                "your user's entity permissions are restricted; scope the logbook by entity_ids"
+            )
+        entity_ids = [e for e in entity_ids if can_read_entity(e)]
+        if not entity_ids:
+            return {"start": start_dt.isoformat(), "end": end_dt.isoformat(), "events": []}
 
     filtered_entity_ids = entity_ids
     if entity_ids:

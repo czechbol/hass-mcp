@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import schema, tool
 
 _OPS = ("get_prefs", "save_prefs", "validate")
@@ -59,14 +59,14 @@ async def ha_energy(
         try:
             await manager.async_update(prefs)
         except Exception as e:
-            raise ToolError(f"save failed: {e}") from e
+            raise internal_error("energy save_prefs failed", e) from e
         return manager.data or {}
 
     if op == "validate":
         try:
             result = await energy_validate.async_validate(hass)
         except Exception as e:
-            raise ToolError(f"validation failed: {e}") from e
+            raise internal_error("energy validation failed", e) from e
         return {"result": result.as_dict() if hasattr(result, "as_dict") else result}
 
     raise ToolError(f"unsupported op '{op}'")

@@ -8,7 +8,7 @@ from homeassistant import loader
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integrations
 
-from ..protocol import ToolError
+from ..protocol import ToolError, internal_error
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 _OPS = {"list_handlers", "list_progress", "init", "configure", "abort"}
@@ -107,7 +107,7 @@ async def ha_config_flow(
                 data=user_input,
             )
         except Exception as e:
-            raise ToolError(f"flow init failed for domain '{domain}': {e}") from e
+            raise internal_error(f"flow init failed for domain '{domain}'", e) from e
         return _flow_result_to_dict(result)
 
     if op == "configure":
@@ -116,7 +116,7 @@ async def ha_config_flow(
         try:
             result = await hass.config_entries.flow.async_configure(flow_id, user_input or {})
         except Exception as e:
-            raise ToolError(f"flow configure failed for '{flow_id}': {e}") from e
+            raise internal_error(f"flow configure failed for '{flow_id}'", e) from e
         return _flow_result_to_dict(result)
 
     if op == "abort":
@@ -125,7 +125,7 @@ async def ha_config_flow(
         try:
             hass.config_entries.flow.async_abort(flow_id)
         except Exception as e:
-            raise ToolError(f"flow abort failed for '{flow_id}': {e}") from e
+            raise internal_error(f"flow abort failed for '{flow_id}'", e) from e
         return {"flow_id": flow_id, "aborted": True}
 
     raise ToolError(f"unsupported op '{op}'")
@@ -143,7 +143,7 @@ async def _list_handlers(
     try:
         flows = await loader.async_get_config_flows(hass)
     except Exception as e:
-        raise ToolError(f"failed to enumerate config flows: {e}") from e
+        raise internal_error("failed to enumerate config flows", e) from e
 
     domains = sorted(flows)
     if domain_pattern:
