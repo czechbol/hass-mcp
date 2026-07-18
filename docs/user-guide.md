@@ -217,6 +217,9 @@ debugging "why didn't this fire?":
 { "op": "get", "domain": "automation", "item_id": "nobody_home", "run_id": "..." }
 ```
 
+Admin-only (all ops) — traces embed entity values and automation logic, and
+HA gates its own trace commands the same way. A non-admin token is refused.
+
 ### `ha_blueprint`
 
 List, get, import (from URL or raw YAML), delete, substitute. Reads the
@@ -244,7 +247,10 @@ Create, list, update, or delete helper entities. For setting their *value*
 | `ha_recorder` | Recorder `info` + destructive `purge` / `purge_entities` |
 
 `ha_statistics list_ids` accepts a `statistic_id_pattern` glob —
-indispensable on big HA instances with hundreds of long-term stats.
+indispensable on big HA instances with hundreds of long-term stats. Its read
+ops honor the token owner's per-entity read policy (a restricted token only
+sees stats for entities it may read); external non-entity statistics are
+unaffected.
 
 ## Conversation and intents
 

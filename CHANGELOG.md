@@ -17,6 +17,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ### Security
 
+## [2.2.1] - 2026-07-18
+
+### Security
+
+- `ha_statistics` read ops (`list_ids`, `period`, `metadata`) now honor the
+  token owner's per-entity read policy, closing a gap left by 2.2.0 — a
+  restricted non-admin token could read long-term statistics for entities its
+  policy hides. External (non-entity) statistic ids are unaffected.
+- `ha_trace` is now admin-only (all ops), matching HA's own `@require_admin`
+  trace commands. Traces embed entity values and automation logic.
+
 ## [2.2.0] - 2026-07-18
 
 ### Security
@@ -131,7 +142,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/czechbol/hass-mcp/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/czechbol/hass-mcp/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/czechbol/hass-mcp/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/czechbol/hass-mcp/compare/v1.1.1...v2.0.0

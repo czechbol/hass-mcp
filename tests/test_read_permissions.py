@@ -14,7 +14,7 @@ import pytest
 
 from custom_components.hass_mcp.identity import current_user
 from custom_components.hass_mcp.protocol import ToolError
-from custom_components.hass_mcp.tools import camera, describe, history, search, states
+from custom_components.hass_mcp.tools import camera, describe, history, search, states, statistics
 from custom_components.hass_mcp.tools import template as tmpl
 
 
@@ -180,3 +180,72 @@ async def test_history_state_changes_all_filtered_returns_empty() -> None:
 async def test_history_logbook_rejects_device_ids_for_restricted_user() -> None:
     with _as(_User(allowed={"light.kitchen"})), pytest.raises(ToolError, match="device_ids"):
         await history.ha_history(MagicMock(), kind="logbook", device_ids=["dev-1"])
+
+
+# ---- ha_statistics --------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_statistics_period_all_filtered_returns_empty() -> None:
+    # All requested ids unreadable → empty result, no recorder fetch.
+    with _as(_User(allowed=set())):
+        out = await statistics.ha_statistics(
+            MagicMock(), op="period", statistic_ids=["sensor.power"]
+        )
+    assert out["data"] == {}
+
+
+@pytest.mark.asyncio
+async def test_statistics_metadata_all_filtered_returns_empty() -> None:
+    with _as(_User(allowed=set())):
+        out = await statistics.ha_statistics(
+            MagicMock(), op="metadata", statistic_ids=["sensor.power"]
+        )
+    assert out["metadata"] == {}
+
+
+@pytest.mark.asyncio
+async def test_statistics_list_ids_filters_by_read_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    from homeassistant.components import recorder as rec
+
+    class _Inst:
+        async def async_add_executor_job(self, fn, *a):
+            return fn(*a)
+
+    monkeypatch.setattr(rec, "get_instance", lambda hass: _Inst())
+    monkeypatch.setattr(
+        rec.statistics,
+        "list_statistic_ids",
+        lambda hass, ids: [
+            {"statistic_id": "sensor.power"},
+            {"statistic_id": "sensor.secret"},
+            {"statistic_id": "energy:grid"},  # external stat, no entity to gate
+        ],
+    )
+    with _as(_User(allowed={"sensor.power"})):
+        out = await statistics.ha_statistics(MagicMock(), op="list_ids")
+    # readable entity stat + external stat pass; hidden entity stat is dropped.
+    assert {r["statistic_id"] for r in out["items"]} == {"sensor.power", "energy:grid"}
+
+
+@pytest.mark.asyncio
+async def test_statistics_period_admin_keeps_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    from homeassistant.components import recorder as rec
+
+    class _Inst:
+        async def async_add_executor_job(self, fn, *a):
+            return fn(*a)
+
+    captured: dict = {}
+
+    def _fake_period(hass, start, end, *, statistic_ids, **kw):
+        captured["ids"] = set(statistic_ids)
+        return {sid: [] for sid in statistic_ids}
+
+    monkeypatch.setattr(rec, "get_instance", lambda hass: _Inst())
+    monkeypatch.setattr(rec.statistics, "statistics_during_period", _fake_period)
+    with _as(_User(allowed=set(), is_admin=True)):
+        await statistics.ha_statistics(
+            MagicMock(), op="period", statistic_ids=["sensor.power", "sensor.secret"]
+        )
+    assert captured["ids"] == {"sensor.power", "sensor.secret"}

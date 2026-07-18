@@ -8,10 +8,23 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from ..identity import can_read_all_entities, can_read_entity
 from ..protocol import ToolError
 from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 _OPS = {"list_ids", "period", "metadata", "clear"}
+
+
+def _readable_stat_id(sid: str) -> bool:
+    """Whether the effective user may read the entity behind a statistic id.
+
+    Recorder statistics for a tracked entity use the entity_id verbatim as the
+    id ("sensor.power"). External statistics use a "source:object" form with no
+    HA entity to gate — those pass through (there is no POLICY_READ to apply).
+    """
+    if ":" in sid or "." not in sid:
+        return True
+    return can_read_entity(sid)
 
 
 @tool(
@@ -95,14 +108,22 @@ async def ha_statistics(
                 for r in rows
                 if fnmatch.fnmatchcase(r.get("statistic_id", ""), statistic_id_pattern)
             ]
+        # Honor the token owner's per-entity read policy (admins/owner see all).
+        if not can_read_all_entities():
+            rows = [r for r in rows if _readable_stat_id(r.get("statistic_id", ""))]
         return paginate(rows, limit, offset)
 
     if op == "metadata":
         if not statistic_ids:
             raise ToolError("op=metadata requires statistic_ids")
+        ids = statistic_ids
+        if not can_read_all_entities():
+            ids = [s for s in statistic_ids if _readable_stat_id(s)]
+            if not ids:
+                return {"metadata": {}}
 
         def _fetch():
-            return statistics.get_metadata(hass, statistic_ids=statistic_ids)
+            return statistics.get_metadata(hass, statistic_ids=ids)
 
         meta = await instance.async_add_executor_job(_fetch)
         return {"metadata": meta}
@@ -110,6 +131,11 @@ async def ha_statistics(
     if op == "period":
         if not statistic_ids:
             raise ToolError("op=period requires statistic_ids")
+        # Drop ids the token owner may not read before touching the recorder.
+        if not can_read_all_entities():
+            statistic_ids = [s for s in statistic_ids if _readable_stat_id(s)]
+            if not statistic_ids:
+                return {"period": period, "data": {}}
         start_dt = dt_util.parse_datetime(start) if start else dt_util.utcnow() - timedelta(days=1)
         if start_dt is None:
             raise ToolError(f"could not parse start '{start}'")

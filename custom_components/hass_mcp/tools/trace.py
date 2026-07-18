@@ -40,6 +40,11 @@ _DOMAINS = ("automation", "script")
         required=["op"],
     ),
     read_only=True,
+    # Traces embed entity values (trigger data, `this`, changed_variables) and
+    # full automation/script logic; HA's own trace WS commands are @require_admin.
+    # Gate every op behind an admin token to match, and to keep entity data out
+    # of a restricted read-only token (consistent with ADR-0004).
+    admin_ops=["list", "get", "contexts"],
 )
 async def ha_trace(
     hass: HomeAssistant,
