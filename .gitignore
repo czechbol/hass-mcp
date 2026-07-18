@@ -7,8 +7,3 @@ __pycache__/
 .vscode/
 .DS_Store
 .claude/
-
-# Local-only working notes / design records (kept out of the repo by choice)
-/CONTEXT.md
-/PENDING-SECURITY-DECISIONS.md
-/docs/adr/
