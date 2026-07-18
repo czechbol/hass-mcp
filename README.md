@@ -166,7 +166,11 @@ user. Operations that HA treats as admin-only and that this integration
 performs via direct APIs — mutations on `ha_registry`, `ha_config_entries`,
 `ha_config_flow`, `ha_energy`, `ha_statistics`, `ha_set_state`,
 `ha_delete_state` — additionally require the token's user to be an
-administrator (their read ops do not).
+administrator (their read ops do not). Reads honor the token owner's per-entity
+read policy: a restricted non-admin token only sees entities its HA policy
+allows (via `ha_list_states`, `ha_get_state`, `ha_describe_entity`, `ha_search`,
+`ha_camera_snapshot`, `ha_history`); `ha_render_template` requires unrestricted
+read access.
 
 ## Security notes
 

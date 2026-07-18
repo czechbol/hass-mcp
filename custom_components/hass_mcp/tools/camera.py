@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
+from ..identity import can_read_entity
 from ..protocol import ToolError
 from ..registry import schema, tool
 
@@ -26,13 +27,18 @@ from ..registry import schema, tool
 async def ha_camera_snapshot(
     hass: HomeAssistant, entity_id: str, timeout: float = 10
 ) -> dict[str, Any]:
+    if not entity_id.startswith("camera."):
+        raise ToolError(f"entity_id must be a camera.* entity (got {entity_id})")
+
+    # Mask cameras the token owner may not read as "not found" (before touching
+    # the camera integration).
+    if not can_read_entity(entity_id):
+        raise ToolError(f"entity_id '{entity_id}' not found")
+
     try:
         from homeassistant.components import camera
     except ImportError as e:
         raise ToolError(f"camera integration not loaded: {e}") from e
-
-    if not entity_id.startswith("camera."):
-        raise ToolError(f"entity_id must be a camera.* entity (got {entity_id})")
 
     try:
         image = await camera.async_get_image(hass, entity_id, timeout=timeout)

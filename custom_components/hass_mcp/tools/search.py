@@ -19,6 +19,7 @@ from homeassistant.helpers import (
     label_registry as lr,
 )
 
+from ..identity import can_read_entity
 from ..registry import schema, tool
 
 _KINDS = ("entity", "device", "area", "label")
@@ -85,6 +86,10 @@ async def ha_search(
     if "entity" in wanted:
         results: list[tuple[float, dict[str, Any]]] = []
         for state in hass.states.async_all():
+            # Device/area/label inventory stays open (setup info, not secrets);
+            # entity results honor the token owner's per-entity read policy.
+            if not can_read_entity(state.entity_id):
+                continue
             fn = state.attributes.get("friendly_name") or ""
             s = max(score(fn), score(state.entity_id))
             if s >= min_score:

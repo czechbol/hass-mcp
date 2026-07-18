@@ -29,7 +29,10 @@ For meta-tools this is per `op` (e.g. `ha_registry op=delete` is destructive,
 enforces that user's permissions. Ops HA treats as admin-only — direct writes to
 the registry / config entries / config flow / state machine / energy /
 statistics, and reads of logs, diagnostics, and core config — need an **admin**
-token.
+token. Entity reads also honor that user's per-entity read policy: a restricted
+non-admin token only observes entities HA lets it read (`ha_list_states`,
+`ha_get_state`, `ha_describe_entity`, `ha_search`, `ha_camera_snapshot`,
+`ha_history`), and `ha_render_template` requires unrestricted read access.
 
 A blocked call returns `isError:true` naming the missing flag or permission —
 no silent failures.

@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers import template as template_helper
 
+from ..identity import can_read_all_entities
 from ..protocol import ToolError
 from ..registry import schema, tool
 
@@ -45,6 +46,16 @@ async def ha_render_template(
     variables: dict[str, Any] | None = None,
     limited: bool = False,
 ) -> dict[str, Any]:
+    # A template reads state directly from hass.states — a channel we can't
+    # filter per-entity — so a user whose read policy is restricted could read
+    # entities they're not allowed to. Gate the whole tool on unrestricted read
+    # access; admins/owner and users with full read policy are unaffected.
+    if not can_read_all_entities():
+        raise ToolError(
+            "rendering templates requires unrestricted read access; your user's "
+            "entity permissions are restricted. Use ha_get_state / ha_list_states instead"
+        )
+
     tpl = template_helper.Template(template, hass)
     try:
         # Best-effort guard against a runaway template (HA's own safety check,

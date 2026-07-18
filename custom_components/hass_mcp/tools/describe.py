@@ -17,6 +17,7 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.service import async_get_all_descriptions
 
+from ..identity import can_read_entity
 from ..protocol import ToolError
 from ..registry import schema, tool
 from .services import _merge_translation, _service_translations
@@ -49,7 +50,8 @@ async def ha_describe_entity(
     include_service_fields: bool = False,
 ) -> dict[str, Any]:
     state = hass.states.get(entity_id)
-    if state is None:
+    # Mask entities the token owner may not read as "not found".
+    if state is None or not can_read_entity(entity_id):
         raise ToolError(f"entity_id '{entity_id}' not found")
 
     domain = state.domain

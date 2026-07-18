@@ -16,6 +16,7 @@ from homeassistant.helpers import (
     entity_registry as er,
 )
 
+from ..identity import can_read_all_entities, can_read_entity
 from ..protocol import ToolError
 from ..registry import (
     LIMIT_FIELD,
@@ -131,6 +132,9 @@ async def ha_list_states(
         return True
 
     filtered = [s for s in states if keep(s)]
+    # Honor the token owner's per-entity read policy (admins/owner see all).
+    if not can_read_all_entities():
+        filtered = [s for s in filtered if can_read_entity(s.entity_id)]
     items = [_state_to_dict(s) for s in filtered]
     if not include_attributes:
         for it, s in zip(items, filtered, strict=False):
@@ -152,7 +156,9 @@ async def ha_list_states(
 )
 async def ha_get_state(hass: HomeAssistant, entity_id: str) -> dict[str, Any]:
     s = hass.states.get(entity_id)
-    if s is None:
+    # Mask entities the token owner may not read as "not found" — no oracle for
+    # existence vs. permission.
+    if s is None or not can_read_entity(entity_id):
         raise ToolError(f"entity_id '{entity_id}' not found")
     return _state_to_dict(s)
 

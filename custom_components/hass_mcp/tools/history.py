@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from ..identity import can_read_all_entities, can_read_entity
 from ..protocol import ToolError
 from ..registry import schema, tool
 
@@ -103,6 +104,11 @@ async def _state_changes(
 ) -> dict[str, Any]:
     if not entity_ids:
         raise ToolError("kind=state_changes requires entity_ids")
+    # Drop entities the token owner may not read (admins/owner keep all).
+    if not can_read_all_entities():
+        entity_ids = [e for e in entity_ids if can_read_entity(e)]
+        if not entity_ids:
+            return {"entities": {}, "start": start_dt.isoformat(), "end": end_dt.isoformat()}
     try:
         from homeassistant.components.recorder import get_instance
         from homeassistant.components.recorder import history as rec_history
@@ -147,6 +153,20 @@ async def _logbook(
         from homeassistant.components.recorder import get_instance
     except ImportError as e:
         raise ToolError(f"logbook integration not loaded: {e}") from e
+
+    # Honor the token owner's per-entity read policy. entity_ids are filtered;
+    # device_ids can't be filtered per-entity here, so a restricted user must
+    # scope by entity_id instead.
+    if not can_read_all_entities():
+        if device_ids:
+            raise ToolError(
+                "your user's entity permissions are restricted; scope the logbook "
+                "by entity_ids rather than device_ids"
+            )
+        if entity_ids:
+            entity_ids = [e for e in entity_ids if can_read_entity(e)]
+            if not entity_ids:
+                return {"start": start_dt.isoformat(), "end": end_dt.isoformat(), "events": []}
 
     filtered_entity_ids = entity_ids
     if entity_ids:

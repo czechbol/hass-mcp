@@ -17,6 +17,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ### Security
 
+- Read tools now honor the token owner's per-entity read policy (HA
+  `POLICY_READ`), matching what the write path already enforced. A restricted
+  non-admin token no longer sees entities its HA policy hides via
+  `ha_list_states`, `ha_get_state`, `ha_describe_entity`, `ha_search`,
+  `ha_camera_snapshot`, or `ha_history`. `ha_render_template` requires
+  unrestricted read access (it reads state through an unfilterable channel).
+  Admins, the owner, and default full-access users are unaffected.
+
 ## [2.1.0] - 2026-07-07
 
 ### Security
