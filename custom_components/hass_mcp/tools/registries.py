@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
@@ -30,6 +31,34 @@ from ..registry import LIMIT_FIELD, OFFSET_FIELD, paginate, schema, tool
 
 _KINDS = {"entity", "device", "area", "label", "floor", "category", "issue"}
 _OPS = {"list", "get", "update", "delete", "create"}
+
+# Registry update fields that HA types as enums. A JSON client sends plain
+# strings, which HA's async_update_* rejects with ValueError; coerce them to the
+# enum member before the call. A None value is valid (it un-sets the field).
+_ENUM_FIELDS = {
+    "entity": {
+        "hidden_by": er.RegistryEntryHider,
+        "disabled_by": er.RegistryEntryDisabler,
+        "entity_category": EntityCategory,
+    },
+    "device": {
+        "disabled_by": dr.DeviceEntryDisabler,
+        "entry_type": dr.DeviceEntryType,
+    },
+}
+
+
+def _coerce_enums(data: dict[str, Any], mapping: dict[str, type]) -> None:
+    """Convert present string values in ``data`` to their enum members in place."""
+    for key, enum_cls in mapping.items():
+        val = data.get(key)
+        if not isinstance(val, str):
+            continue
+        try:
+            data[key] = enum_cls(val)
+        except ValueError:
+            valid = ", ".join(e.value for e in enum_cls)
+            raise ToolError(f"invalid {key} '{val}'; one of: {valid}") from None
 
 
 def _entity_to_dict(e: er.RegistryEntry) -> dict[str, Any]:
@@ -192,6 +221,7 @@ async def _entity_ops(hass, op, id, data, limit, offset):
     if op == "update":
         if not id:
             raise ToolError("entity update requires id (entity_id)")
+        _coerce_enums(data, _ENUM_FIELDS["entity"])
         try:
             updated = reg.async_update_entity(id, **data)
         except KeyError as e:
@@ -225,6 +255,7 @@ async def _device_ops(hass, op, id, data, limit, offset):
     if op == "update":
         if not id:
             raise ToolError("device update requires id")
+        _coerce_enums(data, _ENUM_FIELDS["device"])
         d = reg.async_update_device(id, **data)
         if d is None:
             raise ToolError(f"device '{id}' not found")

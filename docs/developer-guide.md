@@ -165,7 +165,7 @@ _OPS = ("list", "get", "create", "update", "delete")
         },
         required=["op"],
     ),
-    read_only=False,               # this tool mutates
+    read_only=False,  # this tool mutates
     # Per-op gating (preferred for op-dispatch meta-tools): the class is
     # decided by the invoked `op`, enforced centrally before the handler runs.
     # Ops not listed here are treated as reads.
@@ -227,15 +227,18 @@ that need `hass`, use a `MagicMock`:
 import pytest
 from unittest.mock import MagicMock
 
+
 @pytest.fixture
 def hass():
     m = MagicMock()
     m.data = {"hass_mcp": {"options": {}}}
     return m
 
+
 @pytest.mark.asyncio
 async def test_my_thing(hass):
     from custom_components.hass_mcp.tools.my_thing import ha_my_thing
+
     result = await ha_my_thing(hass, op="list")
     assert result["total"] == 0
 ```

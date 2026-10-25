@@ -151,6 +151,12 @@ every op — `entity create` is rejected (entities come from platforms), the
 
 `area`, `label`, and `floor` `get` accept either id or friendly name.
 
+On `kind=entity`/`device` `op=update`, the enum fields are passed as their string
+values: entity `hidden_by` (`integration`/`user`), `disabled_by`
+(`config_entry`/`device`/`hass`/`integration`/`user`), `entity_category`
+(`config`/`diagnostic`); device `disabled_by` and `entry_type` (`service`). Pass
+`null` to clear one.
+
 ## Templates
 
 ### `ha_render_template`
@@ -383,7 +389,9 @@ Acts on the first available admin user — typically the system owner.
 ### `ha_webhook`
 
 List currently registered webhooks (id, integration, allowed methods).
-Useful for finding webhook URLs handed to external services.
+Useful for finding webhook URLs handed to external services. Takes a required
+`op: "list"`. Admin-only: webhook URLs are bearer-equivalent secrets, so a
+restricted non-admin token is refused (same treatment as the config-entry reads).
 
 ## Energy
 
