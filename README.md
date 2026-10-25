@@ -112,7 +112,7 @@ All tools live under the `ha_` prefix. List with `tools/list`; call with
 | `ha_backup`            | Backup integration: info/details/generate/delete/restore + agents/config                                                             |
 | `ha_lovelace`          | Dashboards / configs / resources — read + CRUD (save/delete configs, create/update/delete dashboards & resources)                    |
 | `ha_auth`              | Refresh + long-lived token mgmt (list/create/revoke)                                                                                 |
-| `ha_webhook`           | List registered webhooks                                                                                                             |
+| `ha_webhook`           | List registered webhooks (`op=list`, admin-only — URLs are secrets)                                                                                                             |
 | `ha_list_events`       | Event types + listener counts                                                                                                        |
 | `ha_fire_event`        | Fire an event on the bus (gated)                                                                                                     |
 | `ha_system`           | System introspection: op=get_config / check_config / get_health / read_error_log / read_system_log / clear_system_log |
@@ -167,8 +167,8 @@ performs via direct APIs — mutations on `ha_registry`, `ha_config_entries`,
 `ha_config_flow`, `ha_energy`, `ha_statistics`, `ha_set_state`,
 `ha_delete_state` — additionally require the token's user to be an
 administrator (their read ops do not, except `ha_trace` and `ha_yaml_config`
-list/get, which return full automation/script logic and are admin-only in
-full). Reads honor the token owner's per-entity read policy: a
+list/get, which return full automation/script logic, and `ha_webhook`, whose
+URLs are bearer-equivalent secrets — all admin-only in full). Reads honor the token owner's per-entity read policy: a
 restricted non-admin token only sees entities its HA policy allows (via
 `ha_list_states`, `ha_get_state`, `ha_describe_entity`, `ha_search`,
 `ha_camera_snapshot`, `ha_history`, `ha_statistics`); `ha_render_template`

@@ -5,6 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
+## [2.2.3] - 2026-10-25
+
+### Security
+
+- `ha_webhook` is now admin-only (webhook URLs are bearer-equivalent secrets).
+  Takes a required `op: "list"`. See ADR-0007.
+
+### Fixed
+
+- `ha_registry op=update` now accepts enum fields (`hidden_by`, `disabled_by`,
+  `entity_category`, `entry_type`) as their string values (#2).
+
 ## [2.2.2] - 2026-07-19
 
 ### Security
