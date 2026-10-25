@@ -63,16 +63,18 @@ When we decide a version is shippable:
 
 4. **Wait for CI to pass** (hassfest, HACS validate, ruff, pytest).
 
-5. **Tag and create the GitHub release**:
+5. **Push the tag — the release is created automatically**:
 
    ```sh
-   gh release create v0.6.0 \
-     --title "0.6.0" \
-     --notes-from-tag        # or --notes "$(awk '/## \[0.6.0\]/,/## \[0.5/' CHANGELOG.md | sed '$d')"
+   git tag v0.6.0
+   git push origin v0.6.0
    ```
 
-   Alternatively in the UI: **Releases → Draft a new release → tag v0.6.0**,
-   target `main`, paste the CHANGELOG section as body.
+   The `release` job in `.github/workflows/ci.yml` runs on any `v*` tag, after
+   all four checks pass. It extracts the matching `CHANGELOG.md` section into the
+   release notes and runs `gh release create` itself (hyphenated pre-release tags
+   publish as `--prerelease`). Don't run `gh release create` by hand — it races
+   the workflow, which then fails with `Release.tag_name already exists`.
 
 ## How HACS picks up the release
 
@@ -100,8 +102,8 @@ Every push to `main` and every PR runs:
 | `pytest` | Fast unit tests for `protocol`, `registry`, `rate_limit` |
 
 A release shouldn't go out unless all four are green on the commit the
-tag points to. Tag pushes don't currently re-run CI — verify before
-tagging.
+tag points to. A `v*` tag push re-runs all four, and the `release` job
+`needs` them — so a red check blocks the release automatically.
 
 ## Hotfix path
 
