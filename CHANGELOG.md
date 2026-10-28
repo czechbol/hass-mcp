@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-28
+
+### Added
+
+- `ha_registry kind=entity op=list` accepts `device_id` / `config_entry_id` /
+  `area_id` filters in `data`, scoping server-side instead of paging the whole
+  registry.
+- `ha_system op=read_error_log` gains `head` (read the start of the log) and
+  `contains` (case-insensitive whole-file grep). See ADR-0008.
+
 ## [2.2.3] - 2026-10-25
 
 ### Security

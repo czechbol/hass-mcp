@@ -72,6 +72,33 @@ def _device_reg(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 
 
 @pytest.mark.asyncio
+async def test_entity_list_filters_by_device(monkeypatch: pytest.MonkeyPatch) -> None:
+    e1 = _RegEntry("light.a")
+    e1.device_id = "dev1"
+    e2 = _RegEntry("light.b")
+    e2.device_id = "dev2"
+    reg = MagicMock()
+    reg.entities.values.return_value = [e1, e2]
+    monkeypatch.setattr(registries.er, "async_get", lambda hass: reg)
+
+    res = await registries.ha_registry(
+        MagicMock(), kind="entity", op="list", data={"device_id": "dev1"}
+    )
+    ids = [row["entity_id"] for row in res["items"]]
+    assert ids == ["light.a"]
+
+
+@pytest.mark.asyncio
+async def test_entity_list_no_filter_returns_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    reg = MagicMock()
+    reg.entities.values.return_value = [_RegEntry("light.a"), _RegEntry("light.b")]
+    monkeypatch.setattr(registries.er, "async_get", lambda hass: reg)
+
+    res = await registries.ha_registry(MagicMock(), kind="entity", op="list")
+    assert {row["entity_id"] for row in res["items"]} == {"light.a", "light.b"}
+
+
+@pytest.mark.asyncio
 async def test_entity_update_coerces_enum_strings(monkeypatch: pytest.MonkeyPatch) -> None:
     reg = _entity_reg(monkeypatch)
     await registries.ha_registry(

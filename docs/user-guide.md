@@ -151,6 +151,14 @@ every op — `entity create` is rejected (entities come from platforms), the
 
 `area`, `label`, and `floor` `get` accept either id or friendly name.
 
+On `kind=entity op=list`, scope the result server-side with `data` filters
+`device_id`, `config_entry_id`, and/or `area_id` instead of paging the whole
+registry:
+
+```json
+{ "kind": "entity", "op": "list", "data": { "device_id": "<device-id>" } }
+```
+
 On `kind=entity`/`device` `op=update`, the enum fields are passed as their string
 values: entity `hidden_by` (`integration`/`user`), `disabled_by`
 (`config_entry`/`device`/`hass`/`integration`/`user`), `entity_category`
@@ -281,7 +289,7 @@ unaffected.
 | `get_config` | Core config (version, location, components, URLs) |
 | `check_config` | Validate `configuration.yaml` |
 | `get_health` | Aggregate `system_health/info` (HACS, recorder, network, cloud) |
-| `read_error_log` | Tail `home-assistant.log` |
+| `read_error_log` | Read `home-assistant.log`: tails by default; `head=true` reads the start (boot-time lines), `contains="<text>"` greps the whole file (case-insensitive) |
 | `read_system_log` | HA's in-memory log entries (filterable by level / logger prefix) |
 | `clear_system_log` | Clear the in-memory system log |
 

@@ -29,7 +29,8 @@ _OPS = (
         "op=get_config (core config: version, location, components, URLs, units); "
         "op=check_config (validate configuration.yaml without restarting); "
         "op=get_health (aggregate system_health from all integrations); "
-        "op=read_error_log (tail the on-disk home-assistant.log file); "
+        "op=read_error_log (read the on-disk home-assistant.log file: tail by default, "
+        "'head' for the start, 'contains' to grep the whole file); "
         "op=read_system_log (the in-memory log of errors/warnings, filterable); "
         "op=clear_system_log (clear that in-memory log)."
     ),
@@ -42,6 +43,18 @@ _OPS = (
                 "maximum": 5000,
                 "default": 200,
                 "description": "op=read_error_log.",
+            },
+            "contains": {
+                "type": "string",
+                "description": (
+                    "op=read_error_log: case-insensitive substring; scans the whole file and "
+                    "returns only matching lines (grep). Combine with head to find boot-time logs."
+                ),
+            },
+            "head": {
+                "type": "boolean",
+                "default": False,
+                "description": "op=read_error_log: read the first 'lines' lines instead of the last.",
             },
             "level": {
                 "type": "string",
@@ -70,6 +83,8 @@ async def ha_system(
     lines: int = 200,
     level: str | None = None,
     logger_prefix: str | None = None,
+    contains: str | None = None,
+    head: bool = False,
     limit: int = 100,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -83,7 +98,7 @@ async def ha_system(
         return await _get_health(hass)
 
     if op == "read_error_log":
-        return await _read_error_log(hass, lines)
+        return await _read_error_log(hass, lines, contains, head)
 
     if op == "read_system_log":
         try:
@@ -138,7 +153,12 @@ async def _get_health(hass: HomeAssistant) -> dict[str, Any]:
     return {"domains": domains}
 
 
-async def _read_error_log(hass: HomeAssistant, lines: int) -> dict[str, Any]:
+async def _read_error_log(
+    hass: HomeAssistant,
+    lines: int,
+    contains: str | None = None,
+    head: bool = False,
+) -> dict[str, Any]:
     lines = max(1, min(lines, 5000))  # clamp (schema max isn't enforced server-side)
     path = hass.config.path("home-assistant.log")
     if not os.path.exists(path):
@@ -161,5 +181,16 @@ async def _read_error_log(hass: HomeAssistant, lines: int) -> dict[str, Any]:
                 f.seek(0)
                 return f.read().decode("utf-8", errors="replace").splitlines()[-lines:]
 
-    tail = await hass.async_add_executor_job(_tail)
-    return {"path": path, "lines": tail, "count": len(tail)}
+    def _scan() -> list[str]:
+        # grep and/or head need the whole file; the fast tail path above can't
+        # match earlier lines (boot-time logs) or filter by substring.
+        with open(path, encoding="utf-8", errors="replace") as f:
+            all_lines = f.read().splitlines()
+        if contains is not None:
+            needle = contains.lower()
+            all_lines = [ln for ln in all_lines if needle in ln.lower()]
+        return all_lines[:lines] if head else all_lines[-lines:]
+
+    reader = _scan if (contains is not None or head) else _tail
+    result = await hass.async_add_executor_job(reader)
+    return {"path": path, "lines": result, "count": len(result)}
