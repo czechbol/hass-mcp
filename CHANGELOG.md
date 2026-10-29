@@ -5,7 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
-## [2.3.0] - 2026-10-28
+## [2.3.0] - 2026-10-29
 
 ### Added
 
@@ -180,7 +180,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.2.3...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/czechbol/hass-mcp/compare/v2.2.3...v2.3.0
 [2.2.3]: https://github.com/czechbol/hass-mcp/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/czechbol/hass-mcp/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/czechbol/hass-mcp/compare/v2.2.0...v2.2.1
