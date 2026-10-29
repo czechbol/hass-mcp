@@ -322,7 +322,7 @@ def test_real_tool_op_classifications() -> None:
     from custom_components.hass_mcp.registry import TOOLS
 
     assert TOOLS["ha_system"].destructive_ops == frozenset({"clear_system_log"})
-    assert TOOLS["ha_system"].write_ops == frozenset()
+    assert TOOLS["ha_system"].write_ops == frozenset({"set_config"})
     assert TOOLS["ha_statistics"].destructive_ops == frozenset({"clear"})
     # Traces expose entity values + logic; every op is admin-gated.
     assert TOOLS["ha_trace"].admin_ops == frozenset({"list", "get", "contexts"})

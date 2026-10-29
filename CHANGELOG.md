@@ -13,7 +13,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
   `area_id` filters in `data`, scoping server-side instead of paging the whole
   registry.
 - `ha_system op=read_error_log` gains `head` (read the start of the log) and
-  `contains` (case-insensitive whole-file grep). See ADR-0008.
+  `contains` (case-insensitive whole-file grep).
+- `ha_system op=set_config` updates core config (`external_url`, `internal_url`,
+  location, units, time zone, etc.) via `config/core/update`. Admin +
+  `allow_write`.
 
 ## [2.2.3] - 2026-10-25
 
