@@ -287,6 +287,7 @@ unaffected.
 | `op` | What it does |
 |---|---|
 | `get_config` | Core config (version, location, components, URLs) |
+| `set_config` | Update core config via `data` (`external_url`, `internal_url`, location, units, time zone, …) — admin + `allow_write` |
 | `check_config` | Validate `configuration.yaml` |
 | `get_health` | Aggregate `system_health/info` (HACS, recorder, network, cloud) |
 | `read_error_log` | Read `home-assistant.log`: tails by default; `head=true` reads the start (boot-time lines), `contains="<text>"` greps the whole file (case-insensitive) |

@@ -115,7 +115,7 @@ All tools live under the `ha_` prefix. List with `tools/list`; call with
 | `ha_webhook`           | List registered webhooks (`op=list`, admin-only — URLs are secrets)                                                                                                             |
 | `ha_list_events`       | Event types + listener counts                                                                                                        |
 | `ha_fire_event`        | Fire an event on the bus (gated)                                                                                                     |
-| `ha_system`           | System introspection: op=get_config / check_config / get_health / read_error_log / read_system_log / clear_system_log |
+| `ha_system`           | System introspection + core-config: op=get_config / set_config / check_config / get_health / read_error_log / read_system_log / clear_system_log |
 | `ha_registry`          | Entity / device / area / label / floor / category / issue CRUD                                                                       |
 | `ha_config_entries`    | Manage installed integrations: list / reload / unload / setup / remove / update_options                                              |
 | `ha_config_flow`       | **Add new integrations** via the same flow the UI uses                                                                               |

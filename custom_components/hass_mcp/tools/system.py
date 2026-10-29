@@ -14,11 +14,27 @@ from ..ws import WsCallError, ws_call
 
 _OPS = (
     "get_config",
+    "set_config",
     "check_config",
     "get_health",
     "read_error_log",
     "read_system_log",
     "clear_system_log",
+)
+
+# Core-config fields settable via config/core/update (HA validates each).
+_SET_CONFIG_FIELDS = (
+    "external_url",
+    "internal_url",
+    "location_name",
+    "latitude",
+    "longitude",
+    "elevation",
+    "unit_system",
+    "time_zone",
+    "currency",
+    "country",
+    "language",
 )
 
 
@@ -27,6 +43,9 @@ _OPS = (
     description=(
         "Inspect the Home Assistant system. "
         "op=get_config (core config: version, location, components, URLs, units); "
+        "op=set_config (update core config via 'data': external_url, internal_url, "
+        "location_name, latitude, longitude, elevation, unit_system, time_zone, currency, "
+        "country, language; admin + allow_write); "
         "op=check_config (validate configuration.yaml without restarting); "
         "op=get_health (aggregate system_health from all integrations); "
         "op=read_error_log (read the on-disk home-assistant.log file: tail by default, "
@@ -65,6 +84,15 @@ _OPS = (
                 "type": "string",
                 "description": "op=read_system_log filter (logger-name prefix).",
             },
+            "data": {
+                "type": "object",
+                "additionalProperties": True,
+                "description": (
+                    "op=set_config: core-config fields to update (external_url, internal_url, "
+                    "location_name, latitude, longitude, elevation, unit_system, time_zone, "
+                    "currency, country, language). A URL may be null to clear it."
+                ),
+            },
             "limit": LIMIT_FIELD,
             "offset": OFFSET_FIELD,
         },
@@ -72,6 +100,7 @@ _OPS = (
     ),
     read_only=False,
     requires_admin=True,
+    write_ops=["set_config"],
     destructive_ops=["clear_system_log"],
     # Reads that expose secrets (logs) or precise location/URLs (core config)
     # are admin-only; check_config / get_health stay open.
@@ -85,11 +114,15 @@ async def ha_system(
     logger_prefix: str | None = None,
     contains: str | None = None,
     head: bool = False,
+    data: dict[str, Any] | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> dict[str, Any]:
     if op == "get_config":
         return hass.config.as_dict()
+
+    if op == "set_config":
+        return await _set_config(hass, data or {})
 
     if op == "check_config":
         return await _check_config(hass)
@@ -122,6 +155,19 @@ async def ha_system(
         return {"cleared": True}
 
     raise ToolError(f"unknown op '{op}'")
+
+
+async def _set_config(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    payload = {k: v for k, v in data.items() if k in _SET_CONFIG_FIELDS}
+    if not payload:
+        raise ToolError(f"set_config requires at least one of: {', '.join(_SET_CONFIG_FIELDS)}")
+    # config/core/update is admin-only in HA; ws_call runs it as the token owner,
+    # so HA enforces that natively on top of this tool's requires_admin gate.
+    try:
+        await ws_call(hass, "config/core/update", payload)
+    except WsCallError as e:
+        raise ToolError(str(e)) from e
+    return {"updated": payload}
 
 
 async def _check_config(hass: HomeAssistant) -> dict[str, Any]:
