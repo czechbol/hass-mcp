@@ -161,7 +161,11 @@ def _issue_to_dict(i) -> dict[str, Any]:
             "data": {
                 "type": "object",
                 "additionalProperties": True,
-                "description": "Fields to set on create/update. See HA developer docs for valid keys per registry.",
+                "description": (
+                    "Fields to set on create/update (see HA developer docs for valid keys per "
+                    "registry). On kind=entity op=list, also accepts filters device_id / "
+                    "config_entry_id / area_id to scope the result server-side."
+                ),
             },
             "limit": LIMIT_FIELD,
             "offset": OFFSET_FIELD,
@@ -202,7 +206,15 @@ async def ha_registry(
 async def _entity_ops(hass, op, id, data, limit, offset):
     reg = er.async_get(hass)
     if op == "list":
-        entries = reg.entities.values()
+        entries = list(reg.entities.values())
+        # Optional server-side filters, so clients can scope to one device /
+        # config entry / area instead of paging the whole registry.
+        if dev := data.get("device_id"):
+            entries = [e for e in entries if e.device_id == dev]
+        if cfg := data.get("config_entry_id"):
+            entries = [e for e in entries if e.config_entry_id == cfg]
+        if area := data.get("area_id"):
+            entries = [e for e in entries if e.area_id == area]
         # Honor the token owner's per-entity read policy (admins/owner see all),
         # matching ha_list_states — the registry is entity data, not inventory.
         if not can_read_all_entities():
