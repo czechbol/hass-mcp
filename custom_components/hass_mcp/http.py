@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import datetime as _dt
-import enum as _enum
 import json
 import logging
-from types import MappingProxyType
 from typing import Any
 
 from aiohttp import web
@@ -19,6 +16,7 @@ from .const import (
     DOMAIN,
     VIEW_URL,
 )
+from .jsonenc import json_default
 from .protocol import dispatch
 from .rate_limit import RateLimiter
 
@@ -28,32 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 MAX_BATCH = 100
 
 
-def _json_default(o: Any) -> Any:
-    if isinstance(o, MappingProxyType):
-        return dict(o)
-    if isinstance(o, (set, frozenset)):
-        return sorted(o, key=str)
-    if isinstance(o, (_dt.datetime, _dt.date, _dt.time)):
-        return o.isoformat()
-    if isinstance(o, _dt.timedelta):
-        return o.total_seconds()
-    if isinstance(o, _enum.Enum):
-        return o.value
-    if hasattr(o, "as_dict") and callable(o.as_dict):
-        try:
-            return o.as_dict()
-        except Exception:  # noqa: BLE001
-            pass
-    if hasattr(o, "_asdict") and callable(o._asdict):
-        try:
-            return o._asdict()
-        except Exception:  # noqa: BLE001
-            pass
-    return str(o)
-
-
 def _json_response(payload: Any, status: int = 200) -> web.Response:
-    text = json.dumps(payload, default=_json_default, ensure_ascii=False)
+    text = json.dumps(payload, default=json_default, ensure_ascii=False)
     return web.Response(text=text, status=status, content_type="application/json")
 
 

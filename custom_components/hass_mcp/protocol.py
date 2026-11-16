@@ -15,11 +15,8 @@ implemented — clients that don't strictly require them will function.
 
 from __future__ import annotations
 
-import datetime as _dt
-import enum as _enum
 import json
 import logging
-from types import MappingProxyType
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -34,6 +31,7 @@ from .const import (
     SERVER_VERSION,
 )
 from .identity import current_user
+from .jsonenc import json_default
 from .registry import TOOLS, ToolDef
 
 _LOGGER = logging.getLogger(__name__)
@@ -314,28 +312,9 @@ def internal_error(context: str, exc: BaseException) -> _ToolError:
     return _ToolError(f"{context}; see Home Assistant logs")
 
 
-def _json_default(o: Any) -> Any:
-    if isinstance(o, MappingProxyType):
-        return dict(o)
-    if isinstance(o, (set, frozenset)):
-        return sorted(o, key=str)
-    if isinstance(o, (_dt.datetime, _dt.date, _dt.time)):
-        return o.isoformat()
-    if isinstance(o, _dt.timedelta):
-        return o.total_seconds()
-    if isinstance(o, _enum.Enum):
-        return o.value
-    if hasattr(o, "as_dict") and callable(o.as_dict):
-        try:
-            return o.as_dict()
-        except Exception:  # noqa: BLE001
-            pass
-    return str(o)
-
-
 def _safe_json(value: Any) -> str:
     try:
-        return json.dumps(value, default=_json_default, ensure_ascii=False, indent=2)
+        return json.dumps(value, default=json_default, ensure_ascii=False, indent=2)
     except (TypeError, ValueError):
         return repr(value)
 
