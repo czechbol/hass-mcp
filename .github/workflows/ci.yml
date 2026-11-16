@@ -35,15 +35,23 @@ jobs:
       - run: ruff format --check .
 
   pytest:
-    name: pytest
+    name: pytest (HA ${{ matrix.ha-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The pytest-homeassistant version is the HA calendar version it pins,
+        # so each entry is one HA release the suite runs against. Add newer
+        # releases as they ship; the package only exists from 2026.11 onward
+        # (and requires Python >= 3.14.2).
+        ha-version: ["2026.11.1"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
           cache: pip
-      - run: pip install -r requirements_test.txt
+      - run: pip install "pytest-homeassistant==${{ matrix.ha-version }}"
       - run: pytest -v
 
   release:

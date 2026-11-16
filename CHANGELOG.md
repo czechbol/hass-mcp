@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
+### Changed
+
+- Test suite migrated to Home Assistant's official `pytest-homeassistant`
+  harness; CI now runs as a matrix over HA versions. Automated coverage is
+  HA 2026.11+ (the harness floor); older releases are untested but not blocked.
+- Expanded test coverage across the tools and the HTTP transport layer.
+
 ## [2.3.1] - 2026-11-16
 
 ### Fixed

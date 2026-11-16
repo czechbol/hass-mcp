@@ -22,9 +22,10 @@ pip install -r requirements_test.txt         # install dev deps
 ```
 
 CI runs `hassfest`, `hacs/action`, ruff, pytest on Python 3.14 — see
-`.github/workflows/ci.yml`. (Python 3.14 is the floor recent
-`pytest-homeassistant-custom-component` requires.) `hassfest` and
-`hacs/action` are Docker-based; don't bother running locally.
+`.github/workflows/ci.yml`. pytest runs as a matrix over HA versions, one per
+`pytest-homeassistant` release (its version is the HA calendar version it pins;
+≥3.14.2 Python, HA 2026.11+). `hassfest` and `hacs/action` are Docker-based;
+don't bother running locally.
 
 Dev install: symlink `custom_components/hass_mcp` into an HA config's
 `custom_components/`, restart HA, watch log for `MCP endpoint registered`.
@@ -76,8 +77,11 @@ required args. `ToolError` messages should name the next step
   `set` — convert to primitives or rely on `_json_default`.
 - **Don't swallow `ToolError`**: permission gates are the user's only
   safeguard.
-- Unit tests use plain `MagicMock` for `hass`; we deliberately skip
-  `pytest-homeassistant-custom-component` fixtures for handler unit tests.
+- Handler unit tests use plain `MagicMock` for `hass` (fast, no HA boot).
+  `tests/integration/` is the slower layer that uses HA's real `hass` /
+  `recorder` fixtures from `pytest-homeassistant` — that's what catches
+  real-HA API drift the mocks can't (e.g. the HA 2026.11 statistics-metadata
+  break). Add an integration test when a fix depends on real HA behavior.
 - Ruff config in `pyproject.toml` selects `E,F,W,I,B,UP,RUF,BLE,SLF`,
   target `py313`, line-length 100, `E501`/`B008` ignored.
 
