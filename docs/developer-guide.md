@@ -243,9 +243,15 @@ async def test_my_thing(hass):
     assert result["total"] == 0
 ```
 
-We deliberately avoid the real `pytest-homeassistant-custom-component`
-fixtures for unit tests — they're heavy and our handlers don't need a
-full hass.
+Unit tests under `tests/` use a `MagicMock` for `hass` — for pure logic and
+permission-gate checks.
+
+Integration tests under `tests/integration/` use Home Assistant's real `hass`
+and `recorder` fixtures from the official `pytest-homeassistant` package — for
+behavior that depends on real HA APIs. CI runs the suite as a matrix, one job
+per `pytest-homeassistant` release (its version is the HA calendar version it
+pins). The package requires Python ≥3.14.2 and HA ≥2026.11, so CI covers
+2026.11+; older HA is untested but not blocked.
 
 ## Calling WebSocket-only HA features
 

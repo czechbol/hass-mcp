@@ -213,6 +213,14 @@ npx @modelcontextprotocol/inspector \
   --header "Authorization: Bearer $HA_TOKEN"
 ```
 
+### Supported Home Assistant versions
+
+The automated test suite runs against **Home Assistant 2026.11 and newer** —
+that's the floor of Home Assistant's official `pytest-homeassistant` harness, so
+it's the range we verify in CI. Older releases are not tested but may well still
+work; the integration imposes no hard minimum, so you're welcome to run it on an
+earlier version at your own risk.
+
 ## License
 
 MIT

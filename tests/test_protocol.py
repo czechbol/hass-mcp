@@ -524,3 +524,35 @@ def test_sensitive_reads_are_admin_gated() -> None:
     )
     assert TOOLS["ha_config_entries"].admin_ops == frozenset({"list", "get"})
     assert TOOLS["ha_diagnostics"].admin_ops == frozenset({"list", "config_entry", "device"})
+
+
+@pytest.mark.asyncio
+async def test_batch_returns_response_per_request(hass: MagicMock) -> None:
+    batch = [
+        {"jsonrpc": "2.0", "id": 1, "method": "ping"},
+        {"jsonrpc": "2.0", "id": 2, "method": "ping"},
+    ]
+    responses = await dispatch(hass, batch)
+    assert isinstance(responses, list)
+    assert [r["id"] for r in responses] == [1, 2]
+    assert all(r["result"] == {} for r in responses)
+
+
+@pytest.mark.asyncio
+async def test_batch_omits_notification_responses(hass: MagicMock) -> None:
+    # The middle message has no "id" → notification → produces no entry.
+    batch = [
+        {"jsonrpc": "2.0", "id": 10, "method": "ping"},
+        {"jsonrpc": "2.0", "method": "ping"},
+        {"jsonrpc": "2.0", "id": 11, "method": "ping"},
+    ]
+    responses = await dispatch(hass, batch)
+    assert isinstance(responses, list)
+    assert [r["id"] for r in responses] == [10, 11]
+
+
+@pytest.mark.asyncio
+async def test_empty_batch_is_invalid_request(hass: MagicMock) -> None:
+    response = await dispatch(hass, [])
+    assert response["error"]["code"] == -32600
+    assert response["id"] is None
