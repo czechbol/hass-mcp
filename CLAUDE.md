@@ -20,9 +20,10 @@ pytest tests/test_protocol.py::test_xyz -v   # single test
 pip install -r requirements_test.txt         # install dev deps
 ```
 
-CI runs `hassfest`, `hacs/action`, ruff, pytest on Python 3.13 — see
-`.github/workflows/ci.yml`. `hassfest` and `hacs/action` are Docker-based;
-don't bother running locally.
+CI runs `hassfest`, `hacs/action`, ruff, pytest on Python 3.14 — see
+`.github/workflows/ci.yml`. (Python 3.14 is the floor recent
+`pytest-homeassistant-custom-component` requires.) `hassfest` and
+`hacs/action` are Docker-based; don't bother running locally.
 
 Dev install: symlink `custom_components/hass_mcp` into an HA config's
 `custom_components/`, restart HA, watch log for `MCP endpoint registered`.
