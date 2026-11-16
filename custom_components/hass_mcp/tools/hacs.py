@@ -27,7 +27,9 @@ _OPS = (
         "list (all tracked repos), repository_info (one repo), refresh (fetch "
         "latest version info from upstream), download (install a version), "
         "release_notes. Repository id is HACS's internal id (use op=list to "
-        "find)."
+        "find). NOTE: this uses the legacy HACS WebSocket API and works only on "
+        "Home Assistant 2026.10 and older; on 2026.11+ HACS is replaced by the "
+        "built-in Marketplace and these ops are unavailable."
     ),
     input_schema=schema(
         properties={

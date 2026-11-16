@@ -132,10 +132,11 @@ async def ha_blueprint(
                 raise internal_error(f"fetch failed for url '{url}'", e) from e
         else:
             try:
-                import yaml as _yaml
+                from homeassistant.components.blueprint.schemas import BLUEPRINT_SCHEMA
+                from homeassistant.util.yaml import parse_yaml
 
-                data = _yaml.safe_load(yaml_content)
-                bp_obj = blueprint.Blueprint(data, expected_domain=domain)
+                data = parse_yaml(yaml_content)  # understands HA's !input tag
+                bp_obj = blueprint.Blueprint(data, expected_domain=domain, schema=BLUEPRINT_SCHEMA)
                 default_fname = "imported.yaml"
             except Exception as e:
                 raise ToolError(f"yaml parse failed: {e}") from e
@@ -170,8 +171,19 @@ async def ha_blueprint(
             raise ToolError("op=substitute requires 'path'")
         _require_safe_path(path)
         try:
+            from homeassistant.components.blueprint.errors import MissingInput
+            from homeassistant.components.blueprint.models import BlueprintInputs
+        except ImportError as e:
+            raise ToolError(f"blueprint substitute unavailable: {e}") from e
+        try:
             bp = await bps.async_get_blueprint(path)
-            rendered = bp.async_substitute({"use_blueprint": {"path": path, "input": inputs or {}}})
+            bp_inputs = BlueprintInputs(
+                bp, {"use_blueprint": {"path": path, "input": inputs or {}}}
+            )
+            bp_inputs.validate()
+            rendered = bp_inputs.async_substitute()
+        except MissingInput as e:
+            raise ToolError(str(e)) from e
         except Exception as e:
             raise internal_error(f"substitute failed for '{path}'", e) from e
         return {"path": path, "rendered": rendered}

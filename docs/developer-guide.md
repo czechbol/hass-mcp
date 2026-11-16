@@ -280,6 +280,12 @@ When you need to add a tool that wraps a WS command:
 3. If the command streams (e.g. `backup/subscribe_events`), `ws_call`
    captures only the first message — use the canonical Python API instead.
 
+> **`ha_hacs` is legacy-only.** Its `hacs/*` commands exist only while the
+> standalone HACS integration is installed, i.e. HA 2026.10 and older. HA
+> 2026.11 replaced HACS with the built-in `marketplace` integration and removes
+> HACS on upgrade, so those commands disappear. Porting `ha_hacs` to the
+> Marketplace API is tracked separately.
+
 ## Style and discipline
 
 - **Schemas** are JSON Schema dicts (not Pydantic) — keeps dependencies
@@ -308,8 +314,8 @@ to bootstrap locally) — see [.github/workflows/ci.yml](../.github/workflows/ci
 ## Common pitfalls
 
 - **Forgetting to bump the version.** HA caches custom integrations by
-  version string; without a bump, HACS update + HA restart loads stale
-  bytecode and you'll waste 10 minutes wondering why the fix didn't take.
+  version string; without a bump, a Marketplace/HACS update + HA restart loads
+  stale bytecode and you'll waste 10 minutes wondering why the fix didn't take.
 - **Importing HA components at module top.** Some integrations (`recorder`,
   `logbook`) take a noticeable time to import. Lazy-import inside the
   handler.

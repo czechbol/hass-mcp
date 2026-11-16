@@ -123,7 +123,9 @@ async def ha_statistics(
                 return {"metadata": {}}
 
         def _fetch():
-            return statistics.get_metadata(hass, statistic_ids=ids)
+            # HA 2026.11's recorder does `statistic_ids.difference(...)` on this
+            # arg, so it must be a set, not a list.
+            return statistics.get_metadata(hass, statistic_ids=set(ids))
 
         meta = await instance.async_add_executor_job(_fetch)
         return {"metadata": meta}

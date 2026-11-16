@@ -5,6 +5,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-11-16
+
+### Fixed
+
+- `ha_blueprint op=substitute` and `op=import` (yaml_content) on HA 2026.10+:
+  `async_substitute` moved to `BlueprintInputs`, `Blueprint` now requires a
+  `schema` argument, and `!input` needs HA's YAML parser instead of
+  `yaml.safe_load`.
+- `ha_statistics op=metadata` on HA 2026.11: pass `statistic_ids` as a set, which
+  the recorder now requires (it calls `.difference()` on it).
+
+### Changed
+
+- Docs updated for HA 2026.11, which replaces HACS with the built-in Marketplace;
+  `ha_hacs` is documented as legacy HACS-only (HA 2026.10 and older).
+
 ## [2.3.0] - 2026-10-29
 
 ### Added
@@ -180,7 +196,8 @@ Initial public release.
 - Docs: quick start, user guide, developer guide, release process.
 - CI: hassfest + HACS Action + ruff + pytest on every push.
 
-[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/czechbol/hass-mcp/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/czechbol/hass-mcp/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/czechbol/hass-mcp/compare/v2.2.3...v2.3.0
 [2.2.3]: https://github.com/czechbol/hass-mcp/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/czechbol/hass-mcp/compare/v2.2.1...v2.2.2
