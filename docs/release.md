@@ -76,19 +76,24 @@ When we decide a version is shippable:
    publish as `--prerelease`). Don't run `gh release create` by hand — it races
    the workflow, which then fails with `Release.tag_name already exists`.
 
-## How HACS picks up the release
+## How the Marketplace / HACS picks up the release
 
-HACS tracks GitHub releases for custom repositories. After the tag exists:
+Both the built-in **Marketplace** (HA 2026.11+) and **HACS** (HA 2026.10 and
+older) track GitHub releases for custom repositories from the same `hacs/default`
+catalog, using the same `hacs.json`. After the tag exists:
 
-- The HACS frontend shows an update prompt within the next poll cycle
-  (~30 min). Users can force-refresh via `hacs/repository/refresh`.
-- `ha_hacs op=download repository=<id>` installs the latest release tag.
+- The Marketplace/HACS frontend shows an update prompt within the next poll
+  cycle (~30 min). On HA ≤2026.10 you can force-refresh via
+  `hacs/repository/refresh` (or `ha_hacs op=refresh`); on 2026.11+ use the
+  Marketplace UI (`ha_hacs` does not yet drive the Marketplace).
+- `ha_hacs op=download repository=<id>` installs the latest release tag (HA
+  ≤2026.10 only).
 
-Until 1.0.0 the project also publishes off `main` HEAD — HACS users can
+Until 1.0.0 the project also publishes off `main` HEAD — users can
 opt into either tagged releases or main-branch HEAD.
 
 After 1.0.0 we plan to set `hide_default_branch: true` in `hacs.json` to
-force HACS users onto tagged releases.
+force everyone onto tagged releases.
 
 ## CI gates
 
@@ -127,4 +132,5 @@ gh release create v0.6.0-beta.1 --prerelease ...
 ```
 
 `hacs.json` doesn't currently allow pre-releases by default; users who
-want betas can switch the integration to "Show beta versions" in HACS.
+want betas can switch the integration to "Show beta versions" (in the
+Marketplace on HA 2026.11+, or HACS on 2026.10 and older).

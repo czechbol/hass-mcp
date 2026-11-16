@@ -289,7 +289,7 @@ unaffected.
 | `get_config` | Core config (version, location, components, URLs) |
 | `set_config` | Update core config via `data` (`external_url`, `internal_url`, location, units, time zone, …) — admin + `allow_write` |
 | `check_config` | Validate `configuration.yaml` |
-| `get_health` | Aggregate `system_health/info` (HACS, recorder, network, cloud) |
+| `get_health` | Aggregate `system_health/info` (recorder, network, cloud, Marketplace, …) |
 | `read_error_log` | Read `home-assistant.log`: tails by default; `head=true` reads the start (boot-time lines), `contains="<text>"` greps the whole file (case-insensitive) |
 | `read_system_log` | HA's in-memory log entries (filterable by level / logger prefix) |
 | `clear_system_log` | Clear the in-memory system log |
@@ -335,6 +335,13 @@ version, fetch release notes.
 ```
 
 This is what lets an LLM keep itself up to date.
+
+> **Home Assistant 2026.11+:** HACS is now built into HA as the **Marketplace**
+> (**Settings → Marketplace**) and the standalone HACS integration is removed on
+> upgrade. `ha_hacs` talks to the legacy HACS WebSocket API (`hacs/*`), which no
+> longer exists on 2026.11+, so this tool only works on **HA 2026.10 and older**
+> until it is ported to the Marketplace API. The catalog (`hacs/default`) and
+> `hacs.json` are unchanged, so nothing changes for publishing this repo.
 
 ## Lovelace and frontend
 
@@ -452,6 +459,9 @@ Capture a single frame as base64. Multimodal models can read it directly.
 ```
 
 ## Drive your own HACS update
+
+> Works on **HA 2026.10 and older** only — on 2026.11+ HACS is replaced by the
+> built-in Marketplace and `ha_hacs` cannot reach it (see the `ha_hacs` section).
 
 ```
 1. ha_hacs op=list name_contains="<repo-name>"      # find repository id

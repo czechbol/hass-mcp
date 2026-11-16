@@ -3,7 +3,8 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## What this is
 
-HACS-installable Home Assistant custom integration that mounts a **Model Context
+Home Assistant custom integration (installed via the built-in Marketplace on HA
+2026.11+, HACS on 2026.10 and older) that mounts a **Model Context
 Protocol** (MCP) server inside HA at `POST /api/hass_mcp`. Exposes ~32 generic
 meta-tools (`ha_*`) covering the full HA admin surface. Stateless Streamable
 HTTP transport, JSON-RPC body, reuses HA bearer auth.
@@ -46,7 +47,10 @@ Layout under `custom_components/hass_mcp/`:
 - `rate_limit.py` — per-key sliding-window limiter.
 - `ws.py` — in-process WebSocket dispatch (`ws_call`) for HA features
   with no Python API (helpers, backup, lovelace, HACS, system_log, auth).
-  Builds a fake `ActiveConnection` with an admin user.
+  Builds a fake `ActiveConnection` with an admin user. NB: `ha_hacs` drives
+  the legacy HACS `hacs/*` WS commands, which no longer exist on HA 2026.11+
+  (HACS is replaced by the built-in `marketplace` integration); the tool needs
+  porting to the Marketplace API to work there.
 - `config_flow.py` + `strings.json` + `translations/` — UI option form.
 - `tools/` — one file per tool group; `tools/__init__.py` imports each
   module which side-effect-registers handlers via `@tool(...)`.

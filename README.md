@@ -4,10 +4,11 @@
   <img src="https://raw.githubusercontent.com/czechbol/hass-mcp/refs/heads/main/assets/logo.svg" width="200" alt="Home Assistant MCP logo">
 </p>
 
-HACS-installable Home Assistant integration that mounts a **Model Context
+Home Assistant integration that mounts a **Model Context
 Protocol** (MCP) server inside HA, exposing a small set of **generic
 meta-tools** that cover the full HA admin surface — not the narrow LLM-API
-subset that the core `mcp_server` integration provides.
+subset that the core `mcp_server` integration provides. Install it from the
+built-in **Marketplace** (Home Assistant 2026.11+, formerly HACS).
 
 - Mounted on HA's HTTP at `POST /api/hass_mcp` (Streamable HTTP, stateless,
   JSON-RPC body).
@@ -21,13 +22,20 @@ subset that the core `mcp_server` integration provides.
 - **[Quick start](docs/quickstart.md)** — zero → first tool call in 5 minutes.
 - **[User guide](docs/user-guide.md)** — every tool, with examples and end-to-end workflows.
 - **[Developer guide](docs/developer-guide.md)** — architecture, adding tools, running tests.
-- **[Release process](docs/release.md)** — versioning, CHANGELOG, tags, HACS pickup.
+- **[Release process](docs/release.md)** — versioning, CHANGELOG, tags, Marketplace/HACS pickup.
 - **[CHANGELOG](CHANGELOG.md)** — what's new.
 
 ## Install
 
-1. Add this repository as a HACS custom repository (Integration).
-2. Install **Native MCP for Home Assistant**, restart HA.
+1. Add this repository as a custom repository, then install **Native MCP for
+   Home Assistant**:
+   - **Home Assistant 2026.11+** — **Settings → Marketplace**, the **⋮** menu →
+     **Custom repositories** (or **Add from link**), add this repo's URL as an
+     **Integration**, then **Install**. No restart needed for the download.
+   - **Home Assistant 2026.10 and older** — in **HACS**, add this repo as a
+     custom repository (Integration), **Download**, then **Restart Home
+     Assistant**.
+2. Restart HA if prompted (Marketplace surfaces a repair; HACS requires it).
 3. **Settings → Devices & Services → Add Integration → Native MCP for Home Assistant**.
    Toggle which tool classes are allowed: writes, destructive ops, firing
    arbitrary events.
@@ -119,7 +127,7 @@ All tools live under the `ha_` prefix. List with `tools/list`; call with
 | `ha_registry`          | Entity / device / area / label / floor / category / issue CRUD                                                                       |
 | `ha_config_entries`    | Manage installed integrations: list / reload / unload / setup / remove / update_options                                              |
 | `ha_config_flow`       | **Add new integrations** via the same flow the UI uses                                                                               |
-| `ha_hacs`             | HACS: list/get/install/update repositories |
+| `ha_hacs`             | HACS: list/get/install/update repositories (legacy HACS WebSocket API, HA ≤2026.10; **not yet ported to the 2026.11+ Marketplace**) |
 | `ha_history`          | Recorder timeline: kind=state_changes (significant state history) or kind=logbook (logbook events) between two timestamps |
 | `ha_statistics`        | Long-term statistics: list_ids / period / metadata / clear                                                                           |
 | `ha_assist`           | Invoke Assist: op=converse (conversation pipeline) or op=handle_intent (named intent like HassTurnOn) |
@@ -138,7 +146,7 @@ ha_config_flow op=configure flow_id=...  # submit user_input
 Limitations:
 
 - Adds integrations whose code is **already on disk**. It does not download
-  packages — use HACS / pip for that.
+  packages — use the Marketplace (HACS on HA ≤2026.10) / pip for that.
 - YAML-only integrations have no config flow.
 - OAuth / external-step flows will surface the auth URL; you (the human) need
   to open it.

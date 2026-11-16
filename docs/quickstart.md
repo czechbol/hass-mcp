@@ -10,7 +10,17 @@ You will need:
   anything that speaks the [Model Context Protocol](https://modelcontextprotocol.io/)).
 - About four lines of configuration on the client side.
 
-## 1. Install the integration via HACS
+## 1. Install the integration
+
+**Home Assistant 2026.11+ (built-in Marketplace):**
+
+1. Open **Settings → Marketplace**.
+2. **⋮** menu → **Custom repositories** → **Add from link**.
+3. Add `https://github.com/czechbol/hass-mcp` as category **Integration**.
+4. Open **Native MCP for Home Assistant** → **Install**. Restart HA if a repair
+   asks you to.
+
+**Home Assistant 2026.10 and older (HACS):**
 
 1. Open **HACS** in Home Assistant.
 2. Top-right menu → **Custom repositories**.
@@ -108,7 +118,7 @@ more). The exact count varies by version and enabled options.
 
 If you get `401 Unauthorized` the token is wrong. `404 Not Found` means the
 integration isn't loaded — check that the config-entry exists and HA was
-restarted after the HACS install.
+restarted after installing it.
 
 ## 6. First real task
 

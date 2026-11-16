@@ -11,6 +11,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ·
   `async_substitute` moved to `BlueprintInputs`, `Blueprint` now requires a
   `schema` argument, and `!input` needs HA's YAML parser instead of
   `yaml.safe_load`.
+- `ha_statistics op=metadata` on HA 2026.11: pass `statistic_ids` as a set, which
+  the recorder now requires (it calls `.difference()` on it).
+
+### Changed
+
+- Docs updated for HA 2026.11, which replaces HACS with the built-in Marketplace;
+  `ha_hacs` is documented as legacy HACS-only (HA 2026.10 and older).
 
 ## [2.3.0] - 2026-10-29
 
